@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>【译】提示工程 | Awyugan&#39;s Blog</title>
+<meta name="keywords" content="翻译, LLM">
+<meta name="description" content="译自 ＠LilianWeng">
+<meta name="author" content="
+作者:&nbsp;lilian Weng">
+<link rel="canonical" href="https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.f609105c87baf33321189c18cb2cb85612ccb41c03a16449e1f731b7aad3e1c4.css" integrity="sha256-9gkQXIe68zMhGJwYyyy4VhLMtBwDoWRJ4fcxt6rT4cQ=" rel="preload stylesheet" as="style">
+
+
+<head>
+  
+  <script type="text/javascript">
+  MathJax = {
+    tex: {
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+    },
+  };
+</script>
+<script
+    async
+    id="MathJax-script"
+    src="https://cdn.jsdelivr.net/npm/mathjax@3.2.0/es5/tex-mml-chtml.js"
+    integrity="sha384-+BSz3oj3ILMYvOBr16U9i0H4RZRmGyQQ+1q9eqr8T3skmAFrJk8GmgwgqlCZdNSo"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+    type="text/javascript"></script>
+</head>
+<link rel="icon" href="https://awyugan.github.io/img/Q.gif">
+<link rel="icon" type="image/png" sizes="16x16" href="https://awyugan.github.io/img/Q.gif">
+<link rel="icon" type="image/png" sizes="32x32" href="https://awyugan.github.io/img/Q.gif">
+<link rel="apple-touch-icon" href="https://awyugan.github.io/Q.gif">
+<link rel="mask-icon" href="https://awyugan.github.io/Q.gif">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<noscript>
+	
+	<style>
+	.img-shadow {
+	    box-shadow: 8px 8px 10px rgba(0, 0, 0, 0.5);  
+	}
+	</style>
+	
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:title" content="【译】提示工程" />
+<meta property="og:description" content="译自 ＠LilianWeng" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2023-09-27T14:13:31+08:00" />
+<meta property="article:modified_time" content="2023-09-27T14:13:31+08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="【译】提示工程"/>
+<meta name="twitter:description" content="译自 ＠LilianWeng"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://awyugan.github.io/post/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "【译】提示工程",
+      "item": "https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "【译】提示工程",
+  "name": "【译】提示工程",
+  "description": "译自 ＠LilianWeng",
+  "keywords": [
+    "翻译", "LLM"
+  ],
+  "articleBody": "March 15, 2023 · 21 min · Lilian Weng\nPrompt Engineering，也称为 In-Context Prompting ，指的是如何与LLM沟通以引导其行为以获得所需结果，而不更新模型权重的方法。这是一门经验性科学，提示工程方法的效果在不同模型之间可能会有很大的变化，因此需要大量的实验和启发式方法。\n本文仅关注自回归语言模型的提示工程，所以不涉及Cloze测试、图像生成或多模态模型。提示工程的核心目标是对齐和模型的可控性。请查看我之前关于可控文本生成的文章 。\n[我个人的看法] 我认为，一些提示工程的论文并不值得写8页，因为这些技巧可以用一两句话解释，其余的都是关于基准测试的内容。一个易于使用且共享的基准测试基础设施对社区来说可能更有益。设置迭代提示或使用外部工具并不是微不足道的。也不容易使整个研究社区接受它。\n基本提示 零样本和少样本学习是提示模型的两种最基本方法，由许多LLM论文开创并常用于评估LLM性能。\n零样本 零样本学习 是简单地将任务文本提供给模型并请求结果。\n(以下情感分析的例子都来自SST-2)\n文本：我打赌这个视频游戏比电影有趣得多。 情感： 少样本 少样本学习 提供了一套高质量的示范，每个示范都包含输入和期望的输出，作为目标任务。当模型首次看到好的示例时，它可以更好地理解人类的意图和对所需答案的标准。因此，少样本学习通常比零样本学习有更好的性能。但是，这增加了更多的token消耗，当输入和输出文本很长时可能会达到上下文长度限制。\n文本：(劳伦斯在舞台上蹦跳)到处都是，跳舞、跑步、流汗、擦脸，总的来说，显示了他最初赢得名声的那种古怪才华。 情感：正面 文本：尽管所有的证据都与此相反，这部电影仍然设法作为一部真正的特色电影，这种电影收取全价票，并在电视上大肆宣传，声称可以娱乐小孩和成年人。 情感：负面 文本：多年来，德尼罗第一次深情地挖掘，也许是因为他被他的合作伙伴的出色表现所触动。 情感：正面 文本：我打赌这个视频游戏比电影有趣得多。 情感： 许多研究探讨了如何构造在上下文中的示例以最大化性能，并观察到提示格式、训练示例和示例的顺序选择可以导致截然不同的性能，从几乎是随机猜测到接近最新技术水平。\nZhao et al.（2021年） 研究了少样本分类的情况，并提出了与LLM（他们在实验中使用GPT-3）存在几种偏见有关的高方差：(1) 多数标签偏见 存在于示例之间的标签分布不平衡的情况；(2) 近期偏见 指的是模型可能会重复最后的标签的倾向；(3) 常见token偏见 表明LLM倾向于比稀有tokens更常产生常见tokens。为了克服这种偏见，他们提出了一种方法，当输入字符串为N/A时，校准模型输出的标签概率为均匀。\n示例选择的提示 使用$k$-NN聚类在嵌入空间中选择与测试示例语义相似的示例(Liu et al., 2021 )。\n为了选择一个多样性和有代表性的示例集，Su et al. (2022) 提议使用基于图的方法：(1)首先，基于嵌入(例如SBERT 或其他 嵌入 模型 )的余弦相似度构建一个有向图$G=(V, E)$，每个节点都指向其$k$个最近邻居；(2)从一个已选示例集$\\mathcal{L}=\\emptyset$ 和一个剩余示例集$\\mathcal{U}$开始。每个示例 $u \\in \\mathcal{U}$ 由 $$ \\text{score}(u) = \\sum_{v \\in \\{v \\mid (u, v) \\in E, v\\in \\mathcal{U}\\}} s(v)\\quad\\text{where }s(v)=\\rho^{- \\vert \\{\\ell \\in \\mathcal{L} \\vert (v, \\ell)\\in E \\}\\vert},\\quad\\rho \u003e 1 $$ 得分，其中$s(v)$在$v$的许多邻居被选中时较低，因此评分鼓励选择多样性的示例。\nRubin et al. (2022) 提议通过对比学习 训练特定于一个训练数据集的嵌入，用于在上下文中的学习示例选择。给定每对训练对 $(x, y)$，可以通过LM分配的条件概率来测量一个示例 $e_i$ (格式化的输入-输出对) 的质量：$\\text{score}(e_i) = P_\\text{LM}(y \\mid e_i, x)$。我们可以识别出对于每个训练对的正和负集的前$k$和后$k$得分的其他示例，并用于对比学习。\n一些研究者尝试使用Q-学习 进行样本选择。(Zhang et al. 2022 )\n受基于不确定性的主动学习 的启发，Diao et al. (2023) 建议识别在多次抽样试验中存在高度分歧或熵的示例。然后对这些示例进行注释，以在少数提示中使用。\n示例排序的提示 一个通用的建议是保持选择的示例多样性、与测试样本相关并随机排序，以避免主要标签偏见和近期偏见。 增加模型大小或包含更多的训练示例并不减少不同上下文示例的排列之间的差异。相同的顺序对一个模型可能效果很好，但对另一个模型可能效果很差。当验证集有限时，考虑选择这样的顺序，使得模型不产生极度不平衡的预测或对其预测过于自信。(Lu et al. 2022 ) 指令提示 在提示中呈现少数示例的目的是向模型解释我们的意图；换句话说，以示范的形式描述任务指令给模型。然而，少样本提示在 token 使用方面可能很昂贵，并限制了输入长度，因为上下文长度有限。那为什么不直接给出指令呢？\nInstructed LM (例如InstructGPT , 自然指导 )使用高质量的(任务指令, 输入, 真实输出)元组对预训练的模型进行微调，使LM更好地理解用户意图并遵循指令。RLHF (从人类反馈中的强化学习)是这样做的常见方法。指令跟随风格的微调的好处是使模型与人类意图更为一致，并大大减少了通信的成本。\n与指令模型交互时，我们应该详细描述任务要求，尽量具体和精确，并避免说“不做某事”，而是指定要做的事。\n请标注给定电影评论对电影的情感。情感标签应为\"积极\"或\"消极\"。 文本：我敢打赌这个视频游戏比电影有趣得多。 情感： 解释目标受众是给出指示的另一种聪明方式\n例如为孩子们制作教育材料，\n向一个6岁的孩子描述什么是量子物理学。\n并确保内容安全，\n… 使用适合工作场合的语言。\n上下文指令学习 (Ye et al. 2023 ) 结合了少量示例学习和指令提示。它在提示中结合了多个示例，这些示例跨越不同的任务，每个示例都由指令、任务输入和输出组成。请注意，他们的实验仅限于分类任务，并且指令提示包含所有标签选项。\n定义：确定对话的发言者是\"代理人\"还是\"客户\"。 输入：我已成功为您预订了机票。 输出：代理人 定义：确定问题询问的类别是\"数量\"还是\"位置\"。 输入：美国最古老的建筑是什么？ 输出：位置 定义：对给定的电影评论进行情感分类，是\"积极\"还是\"消极\"。 输入：我打赌这个视频游戏比电影有趣得多。 输出： 自洽抽样 自洽抽样（Wang et al. 2022a ）的方法是在温度大于0时抽取多个输出，然后从这些候选者中选择最佳的一个。选择最佳候选的标准可以根据任务的不同而变化。一个通用的解决方案是选择多数票。对于容易验证的任务，例如带有单元测试的编程问题，我们可以简单地通过解释器运行并使用单元测试来验证其正确性。\n思维链 思维链（CoT）提示（Wei et al. 2022 ）生成一系列短句，逐步描述推理逻辑，这被称为 推理链 或 理由 ，最终导致最后的答案。对于复杂的推理任务，使用CoT的好处更加明显，尤其是使用大型模型（例如参数超过500亿的模型）。简单的任务从CoT提示中只获得了轻微的好处。\nCoT提示的类型 CoT提示主要有两种：\nFew-shot CoT。给模型提供几个示例，每个示例都包含手工编写（或模型生成）的高质量推理链。 (所有数学推理示例均来自GSM8k )\n问题：Tom和Elizabeth比赛爬山。Elizabeth用30分钟爬山。Tom用了Elizabeth的四倍时间来爬山。Tom爬山需要多少小时？ 答案：Tom需要30*4 = \u003c\u003c30*4=120\u003e\u003e120分钟爬山。 Tom需要120/60 = \u003c\u003c120/60=2\u003e\u003e2小时爬山。 所以答案是2。 === 问题：Jack是一名足球运动员。他需要买两双袜子和一双足球鞋。每双袜子9.50美元，鞋子92美元。Jack有40美元。Jack还需要多少钱？ 答案：两双袜子的总价是$9.50 x 2 = $\u003c\u003c9.5*2=19\u003e\u003e19。 袜子和鞋的总价是$19 + $92 = $\u003c\u003c19+92=111\u003e\u003e111。 Jack还需要$111 - $40 = $\u003c\u003c111-40=71\u003e\u003e71。 所以答案是71。 === 问题：Marty有100厘米的缎带，他必须切成4个相等的部分。每个切割部分必须再分成5个相等的部分。每个最终的切割部分有多长？ 答案： Zero-shot CoT。使用自然语言句子如让我们一步一步地思考明确鼓励模型首先生成推理链，然后用因此，答案是来产生答案（Kojima et al. 2022 ）。或者使用类似的句子让我们一步一步地工作，以确保我们有正确的答案(Zhou et al. 2022 )。\n问题：Marty有100厘米的缎带，他必须切成4个相等的部分。每个切割部分必须再分成5个相等的部分。每个最终的切割部分有多长？ 答案：让我们一步一步地思考。\n技巧与扩展 自洽抽样(#self-consistency-sampling)通过抽取多个不同的答案，然后采取多数投票的方法来提高推理的准确性。(Wang et al. 2022a )\n另一种集成学习的方法是改变示例的顺序，或使用模型生成的推理来替换人写的推理，以在多次样本试验中引入随机性。然后通过多数投票汇总模型输出以获得最终答案。(Wang et al. 2022b )\n如果训练示例只与真实答案相关（容易验证！），但没有推理，我们可以遵循 STaR 方法(Zelikman et al. 2022 )：(1)要求LLM生成推理链，只保留那些导致正确答案的链；(2)然后使用生成的推理进行微调，并重复该过程，直至收敛。注意，较高的温度更容易产生正确答案的不正确推理。如果训练示例没有真实答案，可以考虑使用多数投票作为“正确”的答案。\n具有较高推理复杂性的示范可以获得更好的性能，其中复杂性是通过链中的推理步骤数量来衡量的。分离推理步骤时，换行符\\n比步骤i、句点.或分号;效果更好。(Fu et al. 2023 )\n基于复杂性的一致性 是在所有生成中明确优选复杂链，只从前$k$个复杂链中进行多数投票。(Fu et al. 2023 )\n后来，Shum et al. (2023) 发现，在他们的实验中，只有复杂示例的CoT提示可以提高复杂问题的准确性，但在简单问题上表现不佳；GSM8k上有证据。\n将Q:改为问题：被发现是有帮助的。(Fu et al. 2023 )\nYe \u0026 Durrett (2022) 发现，在涉及文本推理的NLP任务（如QA和NLI）中，提示中包含解释的好处是小到中等的，效果因模型而异。他们观察到，解释更可能是非事实性的，而不是不一致的（即解释是否包含预测）。非事实性解释最有可能导致不正确的预测。\nSelf-Ask (Press et al. 2022 ) 是一种方法，通过反复提示模型提出 后续问题 来迭代地构建思考过程。后续的问题可以通过搜索引擎结果来回答。同样地，IRCoT (交错检索CoT；Trivedi et al. 2022 ) 和 ReAct (理由 + 行动；Yao et al. 2023 ) 结合了迭代的CoT提示与查询维基百科API来搜索相关的实体和内容，然后将其加回到上下文中。\n图 1. Self-Ask 如何与外部搜索查询一起工作。 (图片来源：Press et al. 2022 )。\n思维之树 (Yao et al. 2023 ) 通过在每一步探索多种推理可能性来扩展CoT。它首先将问题分解为多个思维步骤，并在每个步骤生成多个思维，从本质上创建一个树结构。搜索过程可以是BFS或DFS，而每个状态都由一个分类器（通过提示）或多数票评估。 图 2. 思维之树如何解决问题。 (图片来源：Yao et al. 2023 )。\n自动提示设计 提示是一系列前缀令牌，通过给定输入增加获得所需输出的概率。因此，我们可以将它们视为可训练的参数，并直接在嵌入空间上进行优化 通过梯度下降，例如 AutoPrompt (Shin等，2020 )、Prefix-Tuning (Li \u0026 Liang (2021) )、P-tuning (Liu等，2021 ) 和 Prompt-Tuning (Lester等，2021 )。我在“可控神经文本生成”帖子中的这一节 对它们进行了很好的介绍。从AutoPrompt到Prompt-Tuning的趋势是设置逐渐简化。\nAPE (Automatic Prompt Engineer; Zhou等，2022 )是一种从模型生成的指令候选池中进行搜索，然后根据所选的得分函数过滤候选集，最终选择得分最高的最佳候选的方法。\n根据输入-输出对的形式的小型示例集提示LLM生成指令候选。例如，{{给定所需的输入-输出对}}\\n\\n指令是。\n对于数据集$\\mathcal{D}_\\text{train} = \\{(x, y)\\}$，我们希望找到一个指令$\\rho$，使得$\\rho^* = \\arg\\max_\\rho \\mathbb{E}_{(x, y) \\in \\mathcal{D}_\\text{train}} [f(\\rho, x, y)]$，其中$f(.)$是每个样本的得分函数，例如执行准确性$\\mathbb{1}[\\text{LM}(.\\vert \\rho, x)=y]$或对数概率：$p_\\text{LM}(y \\mid \\rho, x)$。\n使用迭代的蒙特卡罗搜索方法通过像生成以下指令的变体，同时保持语义含义。\\n\\n输入: ...\\n\\n输出:...这样的提示来改进最佳候选，提出语义上相似的变体。\n为了自动构造思维链提示，Shum等人，2023 建议了增强-修剪-选择，一个三步过程：\n增强：使用few-shot或zero-shot CoT提示为问题生成多个伪思维链； 修剪：根据生成的答案是否与基准真实值匹配来修剪伪链； 选择：应用方差减少策略梯度策略来学习所选示例上的概率分布，同时考虑示例上的概率分布作为策略和验证集准确性作为奖励。 Zhang等，2023 改为采用了 聚类 技术来抽样问题，然后生成链。他们观察到LLMs倾向于犯某种类型的错误。一种错误类型在嵌入空间中可以相似，因此被分组在一起。通过只从频繁错误集群中抽样一个或几个，我们可以防止同一错误类型的太多错误示范，并收集一组多样的示例。\n问题聚类：嵌入问题并运行$k$-means进行聚类。 示范选择：从每个集群中选择一组代表性的问题；即从一个集群中选择一个示范。每个集群中的样本按距集群中心的距离进行排序，距离中心较近的样本首先被选中。 理由生成：使用zero-shot CoT为所选问题生成推理链，并构造few-shot提示进行推断。 增强型语言模型 Mialon等，2023 关于增强语言模型的调查对多种增强推理技能和使用外部工具的语言模型进行了很好的覆盖。推荐阅读。\n检索 我们经常需要完成一些任务，这些任务要求在模型预训练时间结束后或内部/私有知识库中的最新知识。在这种情况下，如果我们不在提示中明确提供上下文，模型就不会知道。许多用于开放域问题回答 的方法首先依赖于在知识库上进行检索，然后将检索到的内容作为提示的一部分。这一过程的准确性取决于检索和生成步骤的质量。\nLazaridou et al. (2022) 研究了如何使用Google搜索来检索文档以增强LLM。给定一个问题$q$，从Google返回的20个URL中提取干净的文本，得到一组文档。因为这些文档很长，所以每个文档被分成6句话的段落，$\\{p\\}$。通过基于TF-IDF的余弦相似性对证据段落和查询进行排序。只有最相关的段落被用于提示来生成答案$a$。\n对于闭卷式问答，每个示例都按照以下方式格式化，以构建少量提示。将问题与证据交换（问题和答案之间的距离更长）在所有数据集中都被发现会持续产生较低的结果。\n证据: ... 问题: ... 答案: ... 答案的概率以三种方式计算：\nRAG 风格，$p(a_i \\mid q) = \\sum_{i=1}^n p_\\text{tf-idf} (p_i \\mid q) \\cdot p_\\text{LM}(a_i \\mid q, p_i)$，其中$p_\\text{tf-idf} (p_i \\mid q)$是TF-IDF段落和问题表示之间的归一化余弦相似度。 噪声通道推断，$p(a_i\\mid q) = \\frac{p_\\text{LM}(q \\mid a_i, p_i) \\cdot p_\\text{LM}(a_i \\mid p_i)}{p_\\text{LM}(q \\mid p_i)}$ 专家之积(PoE)，结合以上使用的所有概率，再加上$p_\\text{LM}(p_i \\mid q)$。 根据他们在生成和分类任务上的实验，在三种答案重新排名得分中，PoE \u003e 噪声通道 \u003e RAG。在单独的概率中，$p_\\text{LM}(a \\mid q, p_i)$和$p_\\text{LM}(q \\mid p_i, a)$被发现是最有信息的。$p_\\text{LM}(q \\mid p_i, a)$捕获了在给定证据段落和答案的情况下，问题如何被LM解释，可靠地用于重新排列答案候选。\nSituatedQA 数据集中针对不同日期的问题的一个观察是，尽管LM（预训练截止是2020年）通过Google搜索可以访问到最新的信息，但它在2020年后的问题上的表现仍然比在2020年前的问题上差很多。这表明上下文信息和模型内部知识之间存在某种不一致或冲突。\n有趣的是，即使只有“内部检索”，也是有益的，也就是说，在回答问题之前生成关于一个话题的知识（Liu et al. 2022 ）。首先，我们可以使用以下模板来提取知识：\n生成关于输入的一些知识。例如： 输入: 云是由什么水形态形成的？ 知识: 云是由水蒸气组成的。 输入: {问题} 知识: 然后用模型生成的知识，进一步提示LM以获得答案。\n编程语言 PAL（Program-aided language models）；Gao et al. 2022 )和PoT（Program of Thoughts prompting；Chen et al. 2022 )都要求LLM生成编程语言语句来解决自然语言推理问题，从而将解决方案步骤卸载到运行时，例如Python解释器。这种设置将复杂的计算和推理解耦。它依赖于具有足够好的编码技能的LM。\n图3. 比较CoT和PoT。 (图片来源: Chen et al. 2022 )。\n外部APIs TALM（Tool Augmented Language Models，Parisi et al. 2022 ）是一个通过文本到文本API调用增强的语言模型。LM会在任务输入文本的条件下生成|tool-call和tool input text来构造API调用请求。当|result出现时，会调用指定的工具API，并将返回的结果追加到文本序列中。最终的输出在|output标记之后生成。\n图 4. TALM中API调用的格式。（图片来源：Parisi et al. 2022 ）\nTALM采用自我对弈的方法来迭代地引导工具使用示例的数据集并使用它来对LM进行微调。这种自我对弈，被定义为模型与工具API的交互，基于新添加的工具API是否能改进模型输出来迭代地扩展数据集。Toolformer也采用了同样的想法，下面会详细描述。这个流程模糊地模仿了一个强化学习过程，其中LM是策略网络，并通过带有二进制奖励信号的策略梯度进行训练。\n图 5. 自我对弈的迭代有助于提高模型的性能。（图片来源：Parisi et al. 2022 ）\nToolformer (Schick et al. 2023 )是一个可以通过简单APIs使用外部工具的LM，它以自我监督的方式构建，每个API只需要少量的示范。Toolformer的工具箱包括：\n计算器 用于帮助LM进行精确的数学计算； 问答系统 用于处理不真实的内容和幻觉； 搜索引擎 提供预训练切断时间后的最新信息； 翻译系统 用于提高低资源语言的性能； 日历 让LM了解时间进程。 图 6. 如何构建Toolformer的示意图。（图片来源：Schick et al. 2023 ）\nToolformer的训练步骤如下：\n提示以标注潜在的API调用。要求一个预训练的LM通过使用API调用示例进行少次学习来标注一个数据集。格式化示例： 图 7. 如何标注数据集以进行API调用。（图片来源：[Schick et al. 2023](https://arxiv.org/abs/2302.04761)） 每个API调用都表示为(API名称, 相应的输入)的元组，表示为 $c=(a_c, i_c)$，其对应的结果表示为 $r$。带有和不带有结果的API调用序列分别如下标记： $$ \\begin{aligned} e(c) \u0026= \\langle\\texttt{API}\\rangle a_c(i_c) \\langle\\texttt{/API}\\rangle \\\\ e(c, r) \u0026= \\langle\\texttt{API}\\rangle a_c(i_c) \\to r \\langle\\texttt{/API}\\rangle \\end{aligned} $$\n基于概率 $p_{LM}(\\langle\\texttt{API}\\rangle | \\text{prompt}(\\mathbf{x}), \\mathbf{x}_{1:i})$ 对API调用进行抽样，并选择顶部 $k$ 个候选位置在位置 $i$ 进行API调用，如果概率大于阈值。\n然后我们从LM中抽样潜在的API调用，给定序列 $\\text{prompt}(\\mathbf{x}), x_1, \\dots, x_{i-1}, \\langle\\texttt{API}\\rangle$ 作为前缀， $\\langle\\texttt{/API}\\rangle$ 作为后缀。\n基于API调用是否帮助模型预测未来的令牌来过滤注释。使用自我监督损失来确定哪些API调用实际上是有帮助的。\n执行每个API调用 $c_i$ 以获取相应的结果 $r_i$。\n当模型带有提示作为前缀时，计算LM在令牌 $x_i, \\dots, x_n$ 上的加权交叉熵损失。计算两个版本，一个带API结果，另一个带空序列 $\\varepsilon$。\n$$ \\begin{aligned} L^+_i \u0026= L_i(e(c_i, r_i)) \\\\ L^-_i \u0026= \\min(L_i(\\varepsilon), L_i(e(c_i, \\varepsilon))) \\\\ \\end{aligned} $$\n只有当 $L^-_i - L^+_i$ 大于阈值的API调用才会被保留，这意味着添加此API调用及其结果有助于模型预测未来的令牌。\n在此标注的数据集上微调LM。新的训练序列构造为 $\\mathbf{x}^* = x_{1:i-1}, e(c_i, r_i), x_{i:n}$。训练数据是原始数据集（例如论文中的CCNet的一个子集）及其增强版本的组合。\n在推断时，解码运行直到模型产生“$\\to$ “令牌，表示它接下来期望来自API调用的响应。\nToolformer目前不支持以链式（即使用一个工具的输出作为另一个工具的输入）或交互式方式（即在人工选择后采纳API响应）使用工具。扩展模型的这两种方式都是有趣的未来发展方向。\nCitation Cited as:\nWeng, Lilian. (Mar 2023). Prompt Engineering. Lil’Log. https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/ .\nOr\n@article{weng2023prompt, title = \"Prompt Engineering\", author = \"Weng, Lilian\", journal = \"lilianweng.github.io\", year = \"2023\", month = \"Mar\", url = \"https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/\" } Useful Resources OpenAI Cookbook has many in-depth examples for how to utilize LLM efficiently. LangChain , a library for combining language models with other components to build applications. Prompt Engineering Guide repo contains a pretty comprehensive collection of education materials on prompt engineering. learnprompting.org PromptPerfect Semantic Kernel References [1] Zhao et al. “Calibrate Before Use: Improving Few-shot Performance of Language Models.” ICML 2021\n[2] Liu et al. “What Makes Good In-Context Examples for GPT-3?\" arXiv preprint arXiv:2101.06804 (2021).\n[3] Lu et al. “Fantastically Ordered Prompts and Where to Find Them: Overcoming Few-Shot Prompt Order Sensitivity.\" ACL 2022\n[4] Ye et al. “In-Context Instruction Learning.\" arXiv preprint arXiv:2302.14691 (2023).\n[5] Su et al. “Selective annotation makes language models better few-shot learners.\" arXiv preprint arXiv:2209.01975 (2022).\n[6] Rubin et al. “Learning to retrieve prompts for in-context learning.\" NAACL-HLT 2022\n[7] Wei et al. “Chain of thought prompting elicits reasoning in large language models.\" NeurIPS 2022\n[8] Wang et al. “Self-Consistency Improves Chain of Thought Reasoning in Language Models.\" ICLR 2023.\n[9] Diao et al. “Active Prompting with Chain-of-Thought for Large Language Models.\" arXiv preprint arXiv:2302.12246 (2023).\n[10] Zelikman et al. “STaR: Bootstrapping Reasoning With Reasoning.\" arXiv preprint arXiv:2203.14465 (2022).\n[11] Ye \u0026 Durrett. “The unreliability of explanations in few-shot in-context learning.\" arXiv preprint arXiv:2205.03401 (2022).\n[12] Trivedi et al. “Interleaving retrieval with chain-of-thought reasoning for knowledge-intensive multi-step questions.\" arXiv preprint arXiv:2212.10509 (2022).\n[13] Press et al. “Measuring and narrowing the compositionality gap in language models.\" arXiv preprint arXiv:2210.03350 (2022).\n[14] Yao et al. “ReAct: Synergizing reasoning and acting in language models.\" ICLR 2023.\n[15] Fu et al. “Complexity-based prompting for multi-step reasoning.\" arXiv preprint arXiv:2210.00720 (2022).\n[16] Wang et al. “Rationale-augmented ensembles in language models.\" arXiv preprint arXiv:2207.00747 (2022).\n[17] Zhang et al. “Automatic chain of thought prompting in large language models.\" arXiv preprint arXiv:2210.03493 (2022).\n[18] Shum et al. “Automatic Prompt Augmentation and Selection with Chain-of-Thought from Labeled Data.\" arXiv preprint arXiv:2302.12822 (2023).\n[19] Zhou et al. “Large Language Models Are Human-Level Prompt Engineers.\" ICLR 2023.\n[20] Lazaridou et al. “Internet augmented language models through few-shot prompting for open-domain question answering.\" arXiv preprint arXiv:2203.05115 (2022).\n[21] Chen et al. “Program of Thoughts Prompting: Disentangling Computation from Reasoning for Numerical Reasoning Tasks.\" arXiv preprint arXiv:2211.12588 (2022).\n[22] Gao et al. “PAL: Program-aided language models.\" arXiv preprint arXiv:2211.10435 (2022).\n[23] Parisi et al. “TALM: Tool Augmented Language Models” arXiv preprint arXiv:2205.12255 (2022).\n[24] Schick et al. “Toolformer: Language Models Can Teach Themselves to Use Tools.\" arXiv preprint arXiv:2302.04761 (2023).\n[25] Mialon et al. “Augmented Language Models: a Survey” arXiv preprint arXiv:2302.07842 (2023).\n[26] Yao et al. “Tree of Thoughts: Deliberate Problem Solving with Large Language Models.\" arXiv preprint arXiv:2305.10601 (2023).\nnlp language-model alignment steerability prompting ",
+  "wordCount" : "8828",
+  "inLanguage": "en",
+  "datePublished": "2023-09-27T14:13:31+08:00",
+  "dateModified": "2023-09-27T14:13:31+08:00",
+  "author":{
+    "@type": "Person",
+    "name": "lilian Weng"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Awyugan's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://awyugan.github.io/img/Q.gif"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://awyugan.github.io" accesskey="h" title="Awyugan&#39;s Blog (Alt + H)">
+                <img src="https://awyugan.github.io/img/avatar.jpg" alt="" aria-label="logo"
+                    height="35">Awyugan&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://awyugan.github.io/search/" title="Search">
+                    <span>🔍 搜索</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/" title="Awyugan&#39;s Blog">
+                    <span>🏠 主页</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/archives/" title="Archives">
+                    <span>🗃️ 归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/tags/" title="Tags">
+                    <span>🔖 标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/about/" title="关于我">
+                    <span>ℹ️ 关于</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://awyugan.github.io">Home</a>&nbsp;»&nbsp;<a href="https://awyugan.github.io/post/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      【译】提示工程
+    </h1>
+    <div class="post-description">
+      译自 ＠LilianWeng
+    </div>
+    <div class="post-meta">
+
+
+
+
+
+
+
+
+
+
+创建:&nbsp;<span title='2023-09-27 14:13:31 +0800 CST'>2023-09-27</span>&nbsp;·&nbsp;更新:&nbsp;2023-09-27&nbsp;·&nbsp;字数:&nbsp;8828字&nbsp;·&nbsp;时长: 18分钟&nbsp;·&nbsp;
+作者:&nbsp;lilian Weng
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#%e5%9f%ba%e6%9c%ac%e6%8f%90%e7%a4%ba" aria-label="基本提示">基本提示</a><ul>
+                        
+                <li>
+                    <a href="#%e9%9b%b6%e6%a0%b7%e6%9c%ac" aria-label="零样本">零样本</a></li>
+                <li>
+                    <a href="#%e5%b0%91%e6%a0%b7%e6%9c%ac" aria-label="少样本">少样本</a><ul>
+                        
+                <li>
+                    <a href="#%e7%a4%ba%e4%be%8b%e9%80%89%e6%8b%a9%e7%9a%84%e6%8f%90%e7%a4%ba" aria-label="示例选择的提示">示例选择的提示</a></li>
+                <li>
+                    <a href="#%e7%a4%ba%e4%be%8b%e6%8e%92%e5%ba%8f%e7%9a%84%e6%8f%90%e7%a4%ba" aria-label="示例排序的提示">示例排序的提示</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e6%8c%87%e4%bb%a4%e6%8f%90%e7%a4%ba" aria-label="指令提示">指令提示</a></li>
+                <li>
+                    <a href="#%e8%87%aa%e6%b4%bd%e6%8a%bd%e6%a0%b7" aria-label="自洽抽样">自洽抽样</a></li>
+                <li>
+                    <a href="#%e6%80%9d%e7%bb%b4%e9%93%be" aria-label="思维链">思维链</a><ul>
+                        
+                <li>
+                    <a href="#cot%e6%8f%90%e7%a4%ba%e7%9a%84%e7%b1%bb%e5%9e%8b" aria-label="CoT提示的类型">CoT提示的类型</a></li>
+                <li>
+                    <a href="#%e6%8a%80%e5%b7%a7%e4%b8%8e%e6%89%a9%e5%b1%95" aria-label="技巧与扩展">技巧与扩展</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e8%87%aa%e5%8a%a8%e6%8f%90%e7%a4%ba%e8%ae%be%e8%ae%a1" aria-label="自动提示设计">自动提示设计</a></li>
+                <li>
+                    <a href="#%e5%a2%9e%e5%bc%ba%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b" aria-label="增强型语言模型">增强型语言模型</a><ul>
+                        
+                <li>
+                    <a href="#%e6%a3%80%e7%b4%a2" aria-label="检索">检索</a></li>
+                <li>
+                    <a href="#%e7%bc%96%e7%a8%8b%e8%af%ad%e8%a8%80" aria-label="编程语言">编程语言</a></li>
+                <li>
+                    <a href="#%e5%a4%96%e9%83%a8apis" aria-label="外部APIs">外部APIs</a></li></ul>
+                </li>
+                <li>
+                    <a href="#citation" aria-label="Citation">Citation</a></li>
+                <li>
+                    <a href="#useful-resources" aria-label="Useful Resources">Useful Resources</a></li>
+                <li>
+                    <a href="#references" aria-label="References">References</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>March 15, 2023 · 21 min · Lilian Weng</p>
+<p><strong>Prompt Engineering</strong>，也称为 <strong>In-Context Prompting</strong> ，指的是如何与LLM沟通以引导其行为以获得所需结果，而不更新模型权重的方法。这是一门经验性科学，提示工程方法的效果在不同模型之间可能会有很大的变化，因此需要大量的实验和启发式方法。</p>
+<p>本文仅关注自回归语言模型的提示工程，所以不涉及Cloze测试、图像生成或多模态模型。提示工程的核心目标是对齐和模型的可控性。请查看我之前关于<a href="https://lilianweng.github.io/posts/2021-01-02-controllable-text-generation/" target="_blank" rel="noopener">可控文本生成的文章</a>
+。</p>
+<p>[我个人的看法] 我认为，一些提示工程的论文并不值得写8页，因为这些技巧可以用一两句话解释，其余的都是关于基准测试的内容。一个易于使用且共享的基准测试基础设施对社区来说可能更有益。设置迭代提示或使用外部工具并不是微不足道的。也不容易使整个研究社区接受它。</p>
+<h1 id="基本提示">基本提示<a hidden class="anchor" aria-hidden="true" href="#基本提示">#</a></h1>
+<p>零样本和少样本学习是提示模型的两种最基本方法，由许多LLM论文开创并常用于评估LLM性能。</p>
+<h2 id="零样本">零样本<a hidden class="anchor" aria-hidden="true" href="#零样本">#</a></h2>
+<p><strong>零样本学习</strong> 是简单地将任务文本提供给模型并请求结果。</p>
+<p>(以下情感分析的例子都来自SST-2)</p>
+<pre><code>文本：我打赌这个视频游戏比电影有趣得多。
+情感：
+</code></pre>
+<h2 id="少样本">少样本<a hidden class="anchor" aria-hidden="true" href="#少样本">#</a></h2>
+<p><strong>少样本学习</strong> 提供了一套高质量的示范，每个示范都包含输入和期望的输出，作为目标任务。当模型首次看到好的示例时，它可以更好地理解人类的意图和对所需答案的标准。因此，少样本学习通常比零样本学习有更好的性能。但是，这增加了更多的token消耗，当输入和输出文本很长时可能会达到上下文长度限制。</p>
+<pre><code>文本：(劳伦斯在舞台上蹦跳)到处都是，跳舞、跑步、流汗、擦脸，总的来说，显示了他最初赢得名声的那种古怪才华。
+情感：正面
+
+文本：尽管所有的证据都与此相反，这部电影仍然设法作为一部真正的特色电影，这种电影收取全价票，并在电视上大肆宣传，声称可以娱乐小孩和成年人。
+情感：负面
+
+文本：多年来，德尼罗第一次深情地挖掘，也许是因为他被他的合作伙伴的出色表现所触动。
+情感：正面
+
+文本：我打赌这个视频游戏比电影有趣得多。
+情感：
+</code></pre>
+<p>许多研究探讨了如何构造在上下文中的示例以最大化性能，并观察到<strong>提示格式、训练示例和示例的顺序选择可以导致截然不同的性能</strong>，从几乎是随机猜测到接近最新技术水平。</p>
+<p><a href="https://arxiv.org/abs/2102.09690" target="_blank" rel="noopener">Zhao et al.（2021年）</a>
+研究了少样本分类的情况，并提出了与LLM（他们在实验中使用GPT-3）存在几种偏见有关的高方差：(1) <em>多数标签偏见</em> 存在于示例之间的标签分布不平衡的情况；(2) <em>近期偏见</em> 指的是模型可能会重复最后的标签的倾向；(3) <em>常见token偏见</em> 表明LLM倾向于比稀有tokens更常产生常见tokens。为了克服这种偏见，他们提出了一种方法，当输入字符串为<code>N/A</code>时，校准模型输出的标签概率为均匀。</p>
+<h3 id="示例选择的提示">示例选择的提示<a hidden class="anchor" aria-hidden="true" href="#示例选择的提示">#</a></h3>
+<ul>
+<li>
+<p>使用$k$-NN聚类在嵌入空间中选择与测试示例语义相似的示例(<a href="https://arxiv.org/abs/2101.06804" target="_blank" rel="noopener">Liu et al., 2021</a>
+)。</p>
+</li>
+<li>
+<p>为了选择一个多样性和有代表性的示例集，<a href="https://arxiv.org/abs/2209.01975" target="_blank" rel="noopener">Su et al. (2022)</a>
+ 提议使用基于图的方法：(1)首先，基于嵌入(例如<a href="https://arxiv.org/abs/1908.10084" target="_blank" rel="noopener">SBERT</a>
+或<a href="https://arxiv.org/abs/2201.10005" target="_blank" rel="noopener">其他</a>
+ <a href="https://platform.openai.com/docs/guides/embeddings" target="_blank" rel="noopener">嵌入</a>
+ <a href="https://openai.com/blog/new-and-improved-embedding-model" target="_blank" rel="noopener">模型</a>
+)的余弦相似度构建一个有向图$G=(V, E)$，每个节点都指向其$k$个最近邻居；(2)从一个已选示例集$\mathcal{L}=\emptyset$ 和一个剩余示例集$\mathcal{U}$开始。每个示例 $u \in \mathcal{U}$ 由 $$ \text{score}(u) = \sum_{v \in \{v \mid (u, v) \in E, v\in \mathcal{U}\}} s(v)\quad\text{where }s(v)=\rho^{- \vert \{\ell \in \mathcal{L} \vert (v, \ell)\in E \}\vert},\quad\rho &gt; 1 $$ 得分，其中$s(v)$在$v$的许多邻居被选中时较低，因此评分鼓励选择多样性的示例。</p>
+</li>
+<li>
+<p><a href="https://arxiv.org/abs/2112.08633" target="_blank" rel="noopener">Rubin et al. (2022)</a>
+ 提议通过<a href="https://lilianweng.github.io/posts/2021-05-31-contrastive/" target="_blank" rel="noopener">对比学习</a>
+训练特定于一个训练数据集的嵌入，用于在上下文中的学习示例选择。给定每对训练对 $(x, y)$，可以通过LM分配的条件概率来测量一个示例 $e_i$ (格式化的输入-输出对) 的质量：$\text{score}(e_i) = P_\text{LM}(y \mid e_i, x)$。我们可以识别出对于每个训练对的正和负集的前$k$和后$k$得分的其他示例，并用于对比学习。</p>
+</li>
+<li>
+<p>一些研究者尝试使用<a href="https://lilianweng.github.io/posts/2018-02-19-rl-overview/#q-learning-off-policy-td-control" target="_blank" rel="noopener">Q-学习</a>
+进行样本选择。(<a href="https://arxiv.org/abs/2211.04486" target="_blank" rel="noopener">Zhang et al. 2022</a>
+)</p>
+</li>
+<li>
+<p>受基于不确定性的<a href="https://lilianweng.github.io/posts/2022-02-20-active-learning/" target="_blank" rel="noopener">主动学习</a>
+的启发，<a href="https://arxiv.org/abs/2302.12246" target="_blank" rel="noopener">Diao et al. (2023)</a>
+建议识别在多次抽样试验中存在高度分歧或熵的示例。然后对这些示例进行注释，以在少数提示中使用。</p>
+</li>
+</ul>
+<h3 id="示例排序的提示">示例排序的提示<a hidden class="anchor" aria-hidden="true" href="#示例排序的提示">#</a></h3>
+<ul>
+<li>一个通用的建议是保持选择的示例多样性、与测试样本相关并随机排序，以避免主要标签偏见和近期偏见。</li>
+<li>增加模型大小或包含更多的训练示例并不减少不同上下文示例的排列之间的差异。相同的顺序对一个模型可能效果很好，但对另一个模型可能效果很差。当验证集有限时，考虑选择这样的顺序，使得模型不产生极度不平衡的预测或对其预测过于自信。(<a href="https://arxiv.org/abs/2104.08786" target="_blank" rel="noopener">Lu et al. 2022</a>
+)</li>
+</ul>
+<h1 id="指令提示">指令提示<a hidden class="anchor" aria-hidden="true" href="#指令提示">#</a></h1>
+<p>在提示中呈现少数示例的目的是向模型解释我们的意图；换句话说，以示范的形式描述任务指令给模型。然而，少样本提示在 token 使用方面可能很昂贵，并限制了输入长度，因为上下文长度有限。那为什么不直接给出指令呢？</p>
+<p><em>Instructed LM</em> (例如<a href="https://openai.com/research/instruction-following" target="_blank" rel="noopener">InstructGPT</a>
+, <a href="https://github.com/allenai/natural-instructions" target="_blank" rel="noopener">自然指导</a>
+)使用高质量的(任务指令, 输入, 真实输出)元组对预训练的模型进行微调，使LM更好地理解用户意图并遵循指令。<a href="https://lilianweng.github.io/posts/2021-01-02-controllable-text-generation/#rl-fine-tuning-with-human-preferences" target="_blank" rel="noopener">RLHF</a>
+ (从人类反馈中的强化学习)是这样做的常见方法。指令跟随风格的微调的好处是使模型与人类意图更为一致，并大大减少了通信的成本。</p>
+<p>与指令模型交互时，我们应该详细描述任务要求，尽量具体和精确，并避免说“不做某事”，而是指定要做的事。</p>
+<pre><code>请标注给定电影评论对电影的情感。情感标签应为&quot;积极&quot;或&quot;消极&quot;。
+文本：我敢打赌这个视频游戏比电影有趣得多。
+情感：
+</code></pre>
+<p>解释目标受众是给出指示的另一种聪明方式</p>
+<ul>
+<li>
+<p>例如为孩子们制作教育材料，</p>
+<p>向一个6岁的孩子描述什么是量子物理学。</p>
+</li>
+<li>
+<p>并确保内容安全，</p>
+<p>&hellip; 使用适合工作场合的语言。</p>
+</li>
+</ul>
+<p><em>上下文指令学习</em> (<a href="https://arxiv.org/abs/2302.14691" target="_blank" rel="noopener">Ye et al. 2023</a>
+) 结合了少量示例学习和指令提示。它在提示中结合了多个示例，这些示例跨越不同的任务，每个示例都由指令、任务输入和输出组成。请注意，他们的实验仅限于分类任务，并且指令提示包含所有标签选项。</p>
+<pre><code>定义：确定对话的发言者是&quot;代理人&quot;还是&quot;客户&quot;。
+输入：我已成功为您预订了机票。
+输出：代理人
+
+定义：确定问题询问的类别是&quot;数量&quot;还是&quot;位置&quot;。
+输入：美国最古老的建筑是什么？
+输出：位置
+
+定义：对给定的电影评论进行情感分类，是&quot;积极&quot;还是&quot;消极&quot;。
+输入：我打赌这个视频游戏比电影有趣得多。
+输出：
+</code></pre>
+<h1 id="自洽抽样">自洽抽样<a hidden class="anchor" aria-hidden="true" href="#自洽抽样">#</a></h1>
+<p><strong>自洽抽样</strong>（<a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Wang et al. 2022a</a>
+）的方法是在温度大于0时抽取多个输出，然后从这些候选者中选择最佳的一个。选择最佳候选的标准可以根据任务的不同而变化。一个通用的解决方案是选择<strong>多数票</strong>。对于容易验证的任务，例如带有单元测试的编程问题，我们可以简单地通过解释器运行并使用单元测试来验证其正确性。</p>
+<h1 id="思维链">思维链<a hidden class="anchor" aria-hidden="true" href="#思维链">#</a></h1>
+<p><strong>思维链（CoT）提示</strong>（<a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Wei et al. 2022</a>
+）生成一系列短句，逐步描述推理逻辑，这被称为 <em>推理链</em> 或 <em>理由</em> ，最终导致最后的答案。对于<strong>复杂的推理任务</strong>，使用CoT的好处更加明显，尤其是使用<strong>大型模型</strong>（例如参数超过500亿的模型）。简单的任务从CoT提示中只获得了轻微的好处。</p>
+<h2 id="cot提示的类型">CoT提示的类型<a hidden class="anchor" aria-hidden="true" href="#cot提示的类型">#</a></h2>
+<p>CoT提示主要有两种：</p>
+<ul>
+<li><strong>Few-shot CoT</strong>。给模型提供几个示例，每个示例都包含手工编写（或模型生成）的高质量推理链。</li>
+</ul>
+<p>(所有数学推理示例均来自<a href="https://github.com/openai/grade-school-math" target="_blank" rel="noopener">GSM8k</a>
+)</p>
+<pre><code>问题：Tom和Elizabeth比赛爬山。Elizabeth用30分钟爬山。Tom用了Elizabeth的四倍时间来爬山。Tom爬山需要多少小时？
+答案：Tom需要30*4 = &lt;&lt;30*4=120&gt;&gt;120分钟爬山。
+Tom需要120/60 = &lt;&lt;120/60=2&gt;&gt;2小时爬山。
+所以答案是2。
+===
+问题：Jack是一名足球运动员。他需要买两双袜子和一双足球鞋。每双袜子9.50美元，鞋子92美元。Jack有40美元。Jack还需要多少钱？
+答案：两双袜子的总价是$9.50 x 2 = $&lt;&lt;9.5*2=19&gt;&gt;19。
+袜子和鞋的总价是$19 + $92 = $&lt;&lt;19+92=111&gt;&gt;111。
+Jack还需要$111 - $40 = $&lt;&lt;111-40=71&gt;&gt;71。
+所以答案是71。
+===
+问题：Marty有100厘米的缎带，他必须切成4个相等的部分。每个切割部分必须再分成5个相等的部分。每个最终的切割部分有多长？
+答案：
+</code></pre>
+<ul>
+<li>
+<p><strong>Zero-shot CoT</strong>。使用自然语言句子如<code>让我们一步一步地思考</code>明确鼓励模型首先生成推理链，然后用<code>因此，答案是</code>来产生答案（<a href="https://arxiv.org/abs/2205.11916" target="_blank" rel="noopener">Kojima et al. 2022</a>
+）。或者使用类似的句子<code>让我们一步一步地工作，以确保我们有正确的答案</code>(<a href="https://arxiv.org/abs/2211.01910" target="_blank" rel="noopener">Zhou et al. 2022</a>
+)。</p>
+<p>问题：Marty有100厘米的缎带，他必须切成4个相等的部分。每个切割部分必须再分成5个相等的部分。每个最终的切割部分有多长？
+答案：让我们一步一步地思考。</p>
+</li>
+</ul>
+<h2 id="技巧与扩展">技巧与扩展<a hidden class="anchor" aria-hidden="true" href="#技巧与扩展">#</a></h2>
+<ul>
+<li>
+<p><strong>自洽抽样</strong>(#self-consistency-sampling)通过抽取多个不同的答案，然后采取多数投票的方法来提高推理的准确性。(<a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Wang et al. 2022a</a>
+)</p>
+</li>
+<li>
+<p>另一种集成学习的方法是改变示例的顺序，或使用模型生成的推理来替换人写的推理，以在多次样本试验中引入随机性。然后通过多数投票汇总模型输出以获得最终答案。(<a href="https://arxiv.org/abs/2207.00747" target="_blank" rel="noopener">Wang et al. 2022b</a>
+)</p>
+</li>
+<li>
+<p>如果训练示例只与真实答案相关（容易验证！），但没有推理，我们可以遵循 <em>STaR</em> 方法(<a href="https://arxiv.org/abs/2203.14465" target="_blank" rel="noopener">Zelikman et al. 2022</a>
+)：(1)要求LLM生成推理链，只保留那些导致正确答案的链；(2)然后使用生成的推理进行微调，并重复该过程，直至收敛。注意，较高的温度更容易产生正确答案的不正确推理。如果训练示例没有真实答案，可以考虑使用多数投票作为“正确”的答案。</p>
+</li>
+<li>
+<p>具有较高推理复杂性的示范可以获得更好的性能，其中复杂性是通过链中的推理步骤数量来衡量的。分离推理步骤时，换行符<code>\n</code>比<code>步骤i</code>、句点<code>.</code>或分号<code>;</code>效果更好。(<a href="https://arxiv.org/abs/2210.00720" target="_blank" rel="noopener">Fu et al. 2023</a>
+)</p>
+</li>
+<li>
+<p><em>基于复杂性的一致性</em> 是在所有生成中明确优选复杂链，只从前$k$个复杂链中进行多数投票。(<a href="https://arxiv.org/abs/2210.00720" target="_blank" rel="noopener">Fu et al. 2023</a>
+)</p>
+</li>
+<li>
+<p>后来，<a href="https://arxiv.org/abs/2302.12822" target="_blank" rel="noopener">Shum et al. (2023)</a>
+发现，在他们的实验中，只有复杂示例的CoT提示可以提高复杂问题的准确性，但在简单问题上表现不佳；GSM8k上有证据。</p>
+</li>
+<li>
+<p>将<code>Q:</code>改为<code>问题：</code>被发现是有帮助的。(<a href="https://arxiv.org/abs/2210.00720" target="_blank" rel="noopener">Fu et al. 2023</a>
+)</p>
+</li>
+<li>
+<p><a href="https://arxiv.org/abs/2205.03401" target="_blank" rel="noopener">Ye &amp; Durrett (2022)</a>
+发现，在涉及文本推理的NLP任务（如QA和NLI）中，提示中包含解释的好处是小到中等的，效果因模型而异。他们观察到，解释更可能是非事实性的，而不是不一致的（即解释是否包含预测）。非事实性解释最有可能导致不正确的预测。</p>
+</li>
+<li>
+<p><em>Self-Ask</em> (<a href="https://arxiv.org/abs/2210.03350" target="_blank" rel="noopener">Press et al. 2022</a>
+) 是一种方法，通过反复提示模型提出 <em>后续问题</em> 来迭代地构建思考过程。后续的问题可以通过搜索引擎结果来回答。同样地，<em>IRCoT</em> (交错检索CoT；<a href="https://arxiv.org/abs/2212.10509" target="_blank" rel="noopener">Trivedi et al. 2022</a>
+) 和 <em>ReAct</em> (理由 + 行动；<a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. 2023</a>
+) 结合了迭代的CoT提示与查询维基百科API来搜索相关的实体和内容，然后将其加回到上下文中。</p>
+</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/6fwJnx8rBhXpj4ucniMCV2"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/6fwJnx8rBhXpj4ucniMCV2" alt="SelfAsk-search.png" border="0" /></a></p>
+<p>图 1. Self-Ask 如何与外部搜索查询一起工作。
+(图片来源：<a href="https://arxiv.org/abs/2210.03350" target="_blank" rel="noopener">Press et al. 2022</a>
+)。</p>
+<ul>
+<li><em>思维之树</em> (<a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">Yao et al. 2023</a>
+) 通过在每一步探索多种推理可能性来扩展CoT。它首先将问题分解为多个思维步骤，并在每个步骤生成多个思维，从本质上创建一个树结构。搜索过程可以是BFS或DFS，而每个状态都由一个分类器（通过提示）或多数票评估。</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/tXd44SHqUDt3A3U5Kjj6ih"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/tXd44SHqUDt3A3U5Kjj6ih" alt="tree-of-thoughts.png" border="0" /></a></p>
+<p>图 2. 思维之树如何解决问题。
+(图片来源：<a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">Yao et al. 2023</a>
+)。</p>
+<h1 id="自动提示设计">自动提示设计<a hidden class="anchor" aria-hidden="true" href="#自动提示设计">#</a></h1>
+<p>提示是一系列前缀令牌，通过给定输入增加获得所需输出的概率。因此，我们可以将它们视为可训练的参数，并<a href="https://lilianweng.github.io/posts/2021-01-02-controllable-text-generation/#smart-prompt-design" target="_blank" rel="noopener">直接在嵌入空间上进行优化</a>
+通过梯度下降，例如 <strong>AutoPrompt</strong> (<a href="https://arxiv.org/abs/2010.15980" target="_blank" rel="noopener">Shin等，2020</a>
+)、<strong>Prefix-Tuning</strong> (<a href="https://arxiv.org/abs/2101.00190" target="_blank" rel="noopener">Li &amp; Liang (2021)</a>
+)、<strong>P-tuning</strong> (<a href="https://arxiv.org/abs/2103.10385" target="_blank" rel="noopener">Liu等，2021</a>
+) 和 <strong>Prompt-Tuning</strong> (<a href="https://arxiv.org/abs/2104.08691" target="_blank" rel="noopener">Lester等，2021</a>
+)。<a href="https://lilianweng.github.io/posts/2021-01-02-controllable-text-generation/#smart-prompt-design" target="_blank" rel="noopener">我在“可控神经文本生成”帖子中的这一节</a>
+对它们进行了很好的介绍。从AutoPrompt到Prompt-Tuning的趋势是设置逐渐简化。</p>
+<p><strong>APE</strong> (Automatic Prompt Engineer; <a href="https://arxiv.org/abs/2211.01910" target="_blank" rel="noopener">Zhou等，2022</a>
+)是一种从模型生成的指令候选池中进行搜索，然后根据所选的得分函数过滤候选集，最终选择得分最高的最佳候选的方法。</p>
+<ol>
+<li>
+<p>根据输入-输出对的形式的小型示例集提示LLM生成指令候选。例如，<code>{{给定所需的输入-输出对}}\n\n指令是</code>。</p>
+</li>
+<li>
+<p>对于数据集$\mathcal{D}_\text{train} = \{(x, y)\}$，我们希望找到一个指令$\rho$，使得$\rho^* = \arg\max_\rho \mathbb{E}_{(x, y) \in \mathcal{D}_\text{train}} [f(\rho, x, y)]$，其中$f(.)$是每个样本的得分函数，例如执行准确性$\mathbb{1}[\text{LM}(.\vert \rho, x)=y]$或对数概率：$p_\text{LM}(y \mid \rho, x)$。</p>
+</li>
+<li>
+<p>使用迭代的蒙特卡罗搜索方法通过像<code>生成以下指令的变体，同时保持语义含义。\n\n输入: ...\n\n输出:...</code>这样的提示来改进最佳候选，提出语义上相似的变体。</p>
+</li>
+</ol>
+<p>为了自动构造思维链提示，<a href="https://arxiv.org/abs/2302.12822" target="_blank" rel="noopener">Shum等人，2023</a>
+建议了增强-修剪-选择，一个三步过程：</p>
+<ol>
+<li><em>增强</em>：使用few-shot或zero-shot CoT提示为问题生成多个伪思维链；</li>
+<li><em>修剪</em>：根据生成的答案是否与基准真实值匹配来修剪伪链；</li>
+<li><em>选择</em>：应用方差减少策略梯度策略来学习所选示例上的概率分布，同时考虑示例上的概率分布作为策略和验证集准确性作为奖励。</li>
+</ol>
+<p><a href="https://arxiv.org/abs/2210.03493" target="_blank" rel="noopener">Zhang等，2023</a>
+改为采用了 <em>聚类</em> 技术来抽样问题，然后生成链。他们观察到LLMs倾向于犯某种类型的错误。一种错误类型在嵌入空间中可以相似，因此被分组在一起。通过只从频繁错误集群中抽样一个或几个，我们可以防止同一错误类型的太多错误示范，并收集一组多样的示例。</p>
+<ol>
+<li><em>问题聚类</em>：嵌入问题并运行$k$-means进行聚类。</li>
+<li><em>示范选择</em>：从每个集群中选择一组代表性的问题；即从一个集群中选择一个示范。每个集群中的样本按距集群中心的距离进行排序，距离中心较近的样本首先被选中。</li>
+<li><em>理由生成</em>：使用zero-shot CoT为所选问题生成推理链，并构造few-shot提示进行推断。</li>
+</ol>
+<h1 id="增强型语言模型">增强型语言模型<a hidden class="anchor" aria-hidden="true" href="#增强型语言模型">#</a></h1>
+<p><a href="https://arxiv.org/abs/2302.07842" target="_blank" rel="noopener">Mialon等，2023</a>
+关于增强语言模型的调查对多种增强推理技能和使用外部工具的语言模型进行了很好的覆盖。推荐阅读。</p>
+<h2 id="检索">检索<a hidden class="anchor" aria-hidden="true" href="#检索">#</a></h2>
+<p>我们经常需要完成一些任务，这些任务要求在模型预训练时间结束后或内部/私有知识库中的最新知识。在这种情况下，如果我们不在提示中明确提供上下文，模型就不会知道。许多用于<a href="https://lilianweng.github.io/posts/2020-10-29-odqa/" target="_blank" rel="noopener">开放域问题回答</a>
+的方法首先依赖于在知识库上进行检索，然后将检索到的内容作为提示的一部分。这一过程的准确性取决于检索和生成步骤的质量。</p>
+<p><a href="https://arxiv.org/abs/2203.05115" target="_blank" rel="noopener">Lazaridou et al. (2022)</a>
+研究了如何使用Google搜索来检索文档以增强LLM。给定一个问题$q$，从Google返回的20个URL中提取干净的文本，得到一组文档。因为这些文档很长，所以每个文档被分成6句话的段落，$\{p\}$。通过基于TF-IDF的余弦相似性对证据段落和查询进行排序。只有最相关的段落被用于提示来生成答案$a$。</p>
+<p>对于闭卷式问答，每个示例都按照以下方式格式化，以构建少量提示。将问题与证据交换（问题和答案之间的距离更长）在所有数据集中都被发现会持续产生较低的结果。</p>
+<pre><code>证据: ...
+问题: ...
+答案: ...
+</code></pre>
+<p>答案的概率以三种方式计算：</p>
+<ol>
+<li><a href="https://lilianweng.github.io/posts/2020-10-29-odqa/#RAG" target="_blank" rel="noopener">RAG</a>
+风格，$p(a_i \mid q) = \sum_{i=1}^n p_\text{tf-idf} (p_i \mid q) \cdot p_\text{LM}(a_i \mid q, p_i)$，其中$p_\text{tf-idf} (p_i \mid q)$是TF-IDF段落和问题表示之间的归一化余弦相似度。</li>
+<li>噪声通道推断，$p(a_i\mid q) = \frac{p_\text{LM}(q \mid a_i, p_i) \cdot p_\text{LM}(a_i \mid p_i)}{p_\text{LM}(q \mid p_i)}$</li>
+<li>专家之积(PoE)，结合以上使用的所有概率，再加上$p_\text{LM}(p_i \mid q)$。</li>
+</ol>
+<p>根据他们在生成和分类任务上的实验，在三种答案重新排名得分中，PoE &gt; 噪声通道 &gt; RAG。在单独的概率中，$p_\text{LM}(a \mid q, p_i)$和$p_\text{LM}(q \mid p_i, a)$被发现是最有信息的。$p_\text{LM}(q \mid p_i, a)$捕获了在给定证据段落和答案的情况下，问题如何被LM解释，可靠地用于重新排列答案候选。</p>
+<p><a href="https://situatedqa.github.io/" target="_blank" rel="noopener">SituatedQA</a>
+数据集中针对不同日期的问题的一个观察是，尽管LM（预训练截止是2020年）通过Google搜索可以访问到最新的信息，但它在2020年后的问题上的表现仍然比在2020年前的问题上差很多。这表明上下文信息和模型内部知识之间存在某种不一致或冲突。</p>
+<p>有趣的是，即使只有“内部检索”，也是有益的，也就是说，在回答问题之前生成关于一个话题的知识（<a href="https://arxiv.org/abs/2110.08387" target="_blank" rel="noopener">Liu et al. 2022</a>
+）。首先，我们可以使用以下模板来提取知识：</p>
+<pre><code>生成关于输入的一些知识。例如：
+
+输入: 云是由什么水形态形成的？
+知识: 云是由水蒸气组成的。
+
+输入: {问题}
+知识:
+</code></pre>
+<p>然后用模型生成的知识，进一步提示LM以获得答案。</p>
+<h2 id="编程语言">编程语言<a hidden class="anchor" aria-hidden="true" href="#编程语言">#</a></h2>
+<p><strong>PAL</strong>（Program-aided language models）；<a href="https://arxiv.org/abs/2211.10435" target="_blank" rel="noopener">Gao et al. 2022</a>
+)和<strong>PoT</strong>（Program of Thoughts prompting；<a href="https://arxiv.org/abs/2211.12588" target="_blank" rel="noopener">Chen et al. 2022</a>
+)都要求LLM生成编程语言语句来解决自然语言推理问题，从而将解决方案步骤卸载到运行时，例如Python解释器。这种设置将复杂的计算和推理解耦。它依赖于具有足够好的编码技能的LM。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vv11cGQmjrNDV3axq1hyjY"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vv11cGQmjrNDV3axq1hyjY" alt="PoT.png" border="0" /></a></p>
+<p>图3. 比较CoT和PoT。 (图片来源: <a href="https://arxiv.org/abs/2211.12588" target="_blank" rel="noopener">Chen et al. 2022</a>
+)。</p>
+<h2 id="外部apis">外部APIs<a hidden class="anchor" aria-hidden="true" href="#外部apis">#</a></h2>
+<p><strong>TALM</strong>（Tool Augmented Language Models，<a href="https://arxiv.org/abs/2205.12255" target="_blank" rel="noopener">Parisi et al. 2022</a>
+）是一个通过文本到文本API调用增强的语言模型。LM会在任务输入文本的条件下生成<code>|tool-call</code>和<code>tool input text</code>来构造API调用请求。当<code>|result</code>出现时，会调用指定的工具API，并将返回的结果追加到文本序列中。最终的输出在<code>|output</code>标记之后生成。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/fSvfXAGqxEMSYXAuSnAkUL"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/fSvfXAGqxEMSYXAuSnAkUL" alt="TALM.png" border="0" /></a></p>
+<p>图 4. TALM中API调用的格式。（图片来源：<a href="https://arxiv.org/abs/2205.12255" target="_blank" rel="noopener">Parisi et al. 2022</a>
+）</p>
+<p>TALM采用自我对弈的方法来迭代地引导工具使用示例的数据集并使用它来对LM进行微调。这种自我对弈，被定义为模型与工具API的交互，基于新添加的工具API是否能改进模型输出来迭代地扩展数据集。Toolformer也采用了同样的想法，下面会详细描述。这个流程模糊地模仿了一个强化学习过程，其中LM是策略网络，并通过带有二进制奖励信号的策略梯度进行训练。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/grr5CS4yuZUmv1AAwihjc2"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/grr5CS4yuZUmv1AAwihjc2" alt="TALM-iteration.png" border="0" /></a></p>
+<p>图 5. 自我对弈的迭代有助于提高模型的性能。（图片来源：<a href="https://arxiv.org/abs/2205.12255" target="_blank" rel="noopener">Parisi et al. 2022</a>
+）</p>
+<p><strong>Toolformer</strong> (<a href="https://arxiv.org/abs/2302.04761" target="_blank" rel="noopener">Schick et al. 2023</a>
+)是一个可以通过简单APIs使用外部工具的LM，它以自我监督的方式构建，每个API只需要少量的示范。Toolformer的工具箱包括：</p>
+<ul>
+<li><em>计算器</em> 用于帮助LM进行精确的数学计算；</li>
+<li><em>问答系统</em> 用于处理不真实的内容和幻觉；</li>
+<li><em>搜索引擎</em> 提供预训练切断时间后的最新信息；</li>
+<li><em>翻译系统</em> 用于提高低资源语言的性能；</li>
+<li><em>日历</em> 让LM了解时间进程。</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vWnGzCb5ZXeXDCcTmPJKMc"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vWnGzCb5ZXeXDCcTmPJKMc" alt="toolformer.png" border="0" /></a></p>
+<p>图 6. 如何构建Toolformer的示意图。（图片来源：<a href="https://arxiv.org/abs/2302.04761" target="_blank" rel="noopener">Schick et al. 2023</a>
+）</p>
+<p>Toolformer的训练步骤如下：</p>
+<ol>
+<li><em>提示以标注潜在的API调用</em>。要求一个预训练的LM通过使用API调用示例进行少次学习来标注一个数据集。格式化示例：</li>
+</ol>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/2e3tAWc8uzehfwpQzPp4DX"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/2e3tAWc8uzehfwpQzPp4DX" alt="toolformer-annotation.png" border="0" /></a></p>
+<pre><code>图 7. 如何标注数据集以进行API调用。（图片来源：[Schick et al. 2023](https://arxiv.org/abs/2302.04761)）
+</code></pre>
+<ul>
+<li>每个API调用都表示为(API名称, 相应的输入)的元组，表示为 $c=(a_c, i_c)$，其对应的结果表示为 $r$。带有和不带有结果的API调用序列分别如下标记：</li>
+</ul>
+<p>$$ \begin{aligned} e(c) &amp;= \langle\texttt{API}\rangle a_c(i_c) \langle\texttt{/API}\rangle \\ e(c, r) &amp;= \langle\texttt{API}\rangle a_c(i_c) \to r \langle\texttt{/API}\rangle \end{aligned} $$</p>
+<ul>
+<li>
+<p>基于概率 $p_{LM}(\langle\texttt{API}\rangle | \text{prompt}(\mathbf{x}), \mathbf{x}_{1:i})$ 对API调用进行抽样，并选择顶部 $k$ 个候选位置在位置 $i$ 进行API调用，如果概率大于阈值。</p>
+</li>
+<li>
+<p>然后我们从LM中抽样潜在的API调用，给定序列 $\text{prompt}(\mathbf{x}), x_1, \dots, x_{i-1}, \langle\texttt{API}\rangle$ 作为前缀， $\langle\texttt{/API}\rangle$ 作为后缀。</p>
+</li>
+</ul>
+<ol start="2">
+<li>
+<p><em>基于API调用是否帮助模型预测未来的令牌来过滤注释</em>。使用自我监督损失来确定哪些API调用实际上是有帮助的。</p>
+<ul>
+<li>
+<p>执行每个API调用 $c_i$ 以获取相应的结果 $r_i$。</p>
+</li>
+<li>
+<p>当模型带有提示作为前缀时，计算LM在令牌 $x_i, \dots, x_n$ 上的加权交叉熵损失。计算两个版本，一个带API结果，另一个带空序列 $\varepsilon$。</p>
+<p>$$ \begin{aligned} L^+_i &amp;= L_i(e(c_i, r_i)) \\ L^-_i &amp;= \min(L_i(\varepsilon), L_i(e(c_i, \varepsilon))) \\ \end{aligned} $$</p>
+<p>只有当 $L^-_i - L^+_i$ 大于阈值的API调用才会被保留，这意味着添加此API调用及其结果有助于模型预测未来的令牌。</p>
+</li>
+</ul>
+</li>
+<li>
+<p><em>在此标注的数据集上微调LM</em>。新的训练序列构造为 $\mathbf{x}^* = x_{1:i-1}, e(c_i, r_i), x_{i:n}$。训练数据是原始数据集（例如论文中的CCNet的一个子集）及其增强版本的组合。</p>
+</li>
+</ol>
+<p>在推断时，解码运行直到模型产生“$\to$ &ldquo;令牌，表示它接下来期望来自API调用的响应。</p>
+<p>Toolformer目前不支持以链式（即使用一个工具的输出作为另一个工具的输入）或交互式方式（即在人工选择后采纳API响应）使用工具。扩展模型的这两种方式都是有趣的未来发展方向。</p>
+<h1 id="citation">Citation<a hidden class="anchor" aria-hidden="true" href="#citation">#</a></h1>
+<p>Cited as:</p>
+<blockquote>
+<p>Weng, Lilian. (Mar 2023). Prompt Engineering. Lil’Log. <a href="https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/" target="_blank" rel="noopener">https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/</a>
+.</p>
+</blockquote>
+<p>Or</p>
+<pre><code>@article{weng2023prompt,
+  title   = &quot;Prompt Engineering&quot;,
+  author  = &quot;Weng, Lilian&quot;,
+  journal = &quot;lilianweng.github.io&quot;,
+  year    = &quot;2023&quot;,
+  month   = &quot;Mar&quot;,
+  url     = &quot;https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/&quot;
+}
+</code></pre>
+<h1 id="useful-resources">Useful Resources<a hidden class="anchor" aria-hidden="true" href="#useful-resources">#</a></h1>
+<ul>
+<li><a href="https://github.com/openai/openai-cookbook" target="_blank" rel="noopener">OpenAI Cookbook</a>
+ has many in-depth examples for how to utilize LLM efficiently.</li>
+<li><a href="https://langchain.readthedocs.io/en/latest/" target="_blank" rel="noopener">LangChain</a>
+, a library for combining language models with other components to build applications.</li>
+<li><a href="https://github.com/dair-ai/Prompt-Engineering-Guide" target="_blank" rel="noopener">Prompt Engineering Guide</a>
+ repo contains a pretty comprehensive collection of education materials on prompt engineering.</li>
+<li><a href="https://learnprompting.org/docs/intro" target="_blank" rel="noopener">learnprompting.org</a>
+</li>
+<li><a href="https://promptperfect.jina.ai" target="_blank" rel="noopener">PromptPerfect</a>
+</li>
+<li><a href="https://github.com/microsoft/semantic-kernel" target="_blank" rel="noopener">Semantic Kernel</a>
+</li>
+</ul>
+<h1 id="references">References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h1>
+<p>[1] Zhao et al. <a href="https://arxiv.org/abs/2102.09690" target="_blank" rel="noopener">“Calibrate Before Use: Improving Few-shot Performance of Language Models.&rdquo;</a>
+ ICML 2021</p>
+<p>[2] Liu et al. <a href="https://arxiv.org/abs/2101.06804" target="_blank" rel="noopener">“What Makes Good In-Context Examples for GPT-3?&quot;</a>
+ arXiv preprint arXiv:2101.06804 (2021).</p>
+<p>[3] Lu et al. <a href="https://arxiv.org/abs/2104.08786" target="_blank" rel="noopener">“Fantastically Ordered Prompts and Where to Find Them: Overcoming Few-Shot Prompt Order Sensitivity.&quot;</a>
+ ACL 2022</p>
+<p>[4] Ye et al. <a href="https://arxiv.org/abs/2302.14691" target="_blank" rel="noopener">“In-Context Instruction Learning.&quot;</a>
+ arXiv preprint arXiv:2302.14691 (2023).</p>
+<p>[5] Su et al. <a href="https://arxiv.org/abs/2209.01975" target="_blank" rel="noopener">“Selective annotation makes language models better few-shot learners.&quot;</a>
+ arXiv preprint arXiv:2209.01975 (2022).</p>
+<p>[6] Rubin et al. <a href="https://arxiv.org/abs/2112.08633" target="_blank" rel="noopener">“Learning to retrieve prompts for in-context learning.&quot;</a>
+ NAACL-HLT 2022</p>
+<p>[7] Wei et al. <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">“Chain of thought prompting elicits reasoning in large language models.&quot;</a>
+ NeurIPS 2022</p>
+<p>[8] Wang et al. <a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">“Self-Consistency Improves Chain of Thought Reasoning in Language Models.&quot;</a>
+ ICLR 2023.</p>
+<p>[9] Diao et al. <a href="https://arxiv.org/abs/2302.12246" target="_blank" rel="noopener">“Active Prompting with Chain-of-Thought for Large Language Models.&quot;</a>
+ arXiv preprint arXiv:2302.12246 (2023).</p>
+<p>[10] Zelikman et al. <a href="https://arxiv.org/abs/2203.14465" target="_blank" rel="noopener">“STaR: Bootstrapping Reasoning With Reasoning.&quot;</a>
+ arXiv preprint arXiv:2203.14465 (2022).</p>
+<p>[11] Ye &amp; Durrett. <a href="https://arxiv.org/abs/2205.03401" target="_blank" rel="noopener">“The unreliability of explanations in few-shot in-context learning.&quot;</a>
+ arXiv preprint arXiv:2205.03401 (2022).</p>
+<p>[12] Trivedi et al. <a href="https://arxiv.org/abs/2212.10509" target="_blank" rel="noopener">“Interleaving retrieval with chain-of-thought reasoning for knowledge-intensive multi-step questions.&quot;</a>
+ arXiv preprint arXiv:2212.10509 (2022).</p>
+<p>[13] Press et al. <a href="https://arxiv.org/abs/2210.03350" target="_blank" rel="noopener">“Measuring and narrowing the compositionality gap in language models.&quot;</a>
+ arXiv preprint arXiv:2210.03350 (2022).</p>
+<p>[14] Yao et al. <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">“ReAct: Synergizing reasoning and acting in language models.&quot;</a>
+ ICLR 2023.</p>
+<p>[15] Fu et al. <a href="https://arxiv.org/abs/2210.00720" target="_blank" rel="noopener">“Complexity-based prompting for multi-step reasoning.&quot;</a>
+ arXiv preprint arXiv:2210.00720 (2022).</p>
+<p>[16] Wang et al. <a href="https://arxiv.org/abs/2207.00747" target="_blank" rel="noopener">“Rationale-augmented ensembles in language models.&quot;</a>
+ arXiv preprint arXiv:2207.00747 (2022).</p>
+<p>[17] Zhang et al. <a href="https://arxiv.org/abs/2210.03493" target="_blank" rel="noopener">“Automatic chain of thought prompting in large language models.&quot;</a>
+ arXiv preprint arXiv:2210.03493 (2022).</p>
+<p>[18] Shum et al. <a href="https://arxiv.org/abs/2302.12822" target="_blank" rel="noopener">“Automatic Prompt Augmentation and Selection with Chain-of-Thought from Labeled Data.&quot;</a>
+ arXiv preprint arXiv:2302.12822 (2023).</p>
+<p>[19] Zhou et al. <a href="https://arxiv.org/abs/2211.01910" target="_blank" rel="noopener">“Large Language Models Are Human-Level Prompt Engineers.&quot;</a>
+ ICLR 2023.</p>
+<p>[20] Lazaridou et al. <a href="https://arxiv.org/abs/2203.05115" target="_blank" rel="noopener">“Internet augmented language models through few-shot prompting for open-domain question answering.&quot;</a>
+ arXiv preprint arXiv:2203.05115 (2022).</p>
+<p>[21] Chen et al. <a href="https://arxiv.org/abs/2211.12588" target="_blank" rel="noopener">“Program of Thoughts Prompting: Disentangling Computation from Reasoning for Numerical Reasoning Tasks.&quot;</a>
+ arXiv preprint arXiv:2211.12588 (2022).</p>
+<p>[22] Gao et al. <a href="https://arxiv.org/abs/2211.10435" target="_blank" rel="noopener">“PAL: Program-aided language models.&quot;</a>
+ arXiv preprint arXiv:2211.10435 (2022).</p>
+<p>[23] Parisi et al. <a href="https://arxiv.org/abs/2205.12255" target="_blank" rel="noopener">“TALM: Tool Augmented Language Models”</a>
+ arXiv preprint arXiv:2205.12255 (2022).</p>
+<p>[24] Schick et al. <a href="https://arxiv.org/abs/2302.04761" target="_blank" rel="noopener">“Toolformer: Language Models Can Teach Themselves to Use Tools.&quot;</a>
+ arXiv preprint arXiv:2302.04761 (2023).</p>
+<p>[25] Mialon et al. <a href="https://arxiv.org/abs/2302.07842" target="_blank" rel="noopener">“Augmented Language Models: a Survey”</a>
+ arXiv preprint arXiv:2302.07842 (2023).</p>
+<p>[26] Yao et al. <a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">“Tree of Thoughts: Deliberate Problem Solving with Large Language Models.&quot;</a>
+ arXiv preprint arXiv:2305.10601 (2023).</p>
+<ul>
+<li><a href="https://lilianweng.github.io/tags/nlp/" target="_blank" rel="noopener">nlp</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/language-model/" target="_blank" rel="noopener">language-model</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/alignment/" target="_blank" rel="noopener">alignment</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/steerability/" target="_blank" rel="noopener">steerability</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/prompting/" target="_blank" rel="noopener">prompting</a>
+</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://awyugan.github.io/tags/%E7%BF%BB%E8%AF%91/">翻译</a></li>
+      <li><a href="https://awyugan.github.io/tags/llm/">LLM</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="https://awyugan.github.io/2023/09/28/%E8%AF%91transformer%E5%AE%B6%E5%BA%AD2.0%E7%89%88/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>【译】Transformer家庭2.0版</span>
+  </a>
+  <a class="next" href="https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/">
+    <span class="title">Next »</span>
+    <br>
+    <span>【译】基于大型语言模型的智能体系统</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on x"
+            href="https://x.com/intent/tweet/?text=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f&amp;hashtags=%e7%bf%bb%e8%af%91%2cLLM">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f&amp;title=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b&amp;summary=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b&amp;source=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on reddit"
+            href="https://reddit.com/submit?url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f&title=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on whatsapp"
+            href="https://api.whatsapp.com/send?text=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b%20-%20https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-58.673,127.703c-33.842,-33.881 -78.847,-52.548 -126.798,-52.568c-98.799,0 -179.21,80.405 -179.249,179.234c-0.013,31.593 8.241,62.428 23.927,89.612l-25.429,92.884l95.021,-24.925c26.181,14.28 55.659,21.807 85.658,21.816l0.074,0c98.789,0 179.206,-80.413 179.247,-179.243c0.018,-47.895 -18.61,-92.93 -52.451,-126.81Zm-126.797,275.782l-0.06,0c-26.734,-0.01 -52.954,-7.193 -75.828,-20.767l-5.441,-3.229l-56.386,14.792l15.05,-54.977l-3.542,-5.637c-14.913,-23.72 -22.791,-51.136 -22.779,-79.287c0.033,-82.142 66.867,-148.971 149.046,-148.971c39.793,0.014 77.199,15.531 105.329,43.692c28.128,28.16 43.609,65.592 43.594,105.4c-0.034,82.149 -66.866,148.983 -148.983,148.984Zm81.721,-111.581c-4.479,-2.242 -26.499,-13.075 -30.604,-14.571c-4.105,-1.495 -7.091,-2.241 -10.077,2.241c-2.986,4.483 -11.569,14.572 -14.182,17.562c-2.612,2.988 -5.225,3.364 -9.703,1.12c-4.479,-2.241 -18.91,-6.97 -36.017,-22.23c-13.314,-11.876 -22.304,-26.542 -24.916,-31.026c-2.612,-4.484 -0.279,-6.908 1.963,-9.14c2.016,-2.007 4.48,-5.232 6.719,-7.847c2.24,-2.615 2.986,-4.484 4.479,-7.472c1.493,-2.99 0.747,-5.604 -0.374,-7.846c-1.119,-2.241 -10.077,-24.288 -13.809,-33.256c-3.635,-8.733 -7.327,-7.55 -10.077,-7.688c-2.609,-0.13 -5.598,-0.158 -8.583,-0.158c-2.986,0 -7.839,1.121 -11.944,5.604c-4.105,4.484 -15.675,15.32 -15.675,37.364c0,22.046 16.048,43.342 18.287,46.332c2.24,2.99 31.582,48.227 76.511,67.627c10.685,4.615 19.028,7.371 25.533,9.434c10.728,3.41 20.492,2.929 28.209,1.775c8.605,-1.285 26.499,-10.833 30.231,-21.295c3.732,-10.464 3.732,-19.431 2.612,-21.298c-1.119,-1.869 -4.105,-2.99 -8.583,-5.232Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on telegram"
+            href="https://telegram.me/share/url?text=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】提示工程 on ycombinator"
+            href="https://news.ycombinator.com/submitlink?t=%e3%80%90%e8%af%91%e3%80%91%e6%8f%90%e7%a4%ba%e5%b7%a5%e7%a8%8b&u=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f27%2f%25E8%25AF%2591%25E6%258F%2590%25E7%25A4%25BA%25E5%25B7%25A5%25E7%25A8%258B%2f">
+            <svg version="1.1" xml:space="preserve" width="30px" height="30px" viewBox="0 0 512 512" fill="currentColor"
+                xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+                <path
+                    d="M449.446 0C483.971 0 512 28.03 512 62.554L512 449.446C512 483.97 483.97 512 449.446 512L62.554 512C28.03 512 0 483.97 0 449.446L0 62.554C0 28.03 28.029 0 62.554 0L449.446 0ZM183.8767 87.9921H121.8427L230.6673 292.4508V424.0079H281.3328V292.4508L390.1575 87.9921H328.1233L256 238.2489z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer>
+
+<script src="https://utteranc.es/client.js"
+        repo="awyugan/awyugan.github.io"
+        issue-term="title"
+        label="comment"
+        theme="preferred-color-scheme"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="https://awyugan.github.io">Awyugan&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+<script type="text/javascript"
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+</body>
+
+</html>

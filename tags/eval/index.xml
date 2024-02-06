@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>eval on Awyugan&#39;s Blog</title>
+    <link>https://awyugan.github.io/tags/eval/</link>
+    <description>Recent content in eval on Awyugan&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Sat, 28 Oct 2023 17:00:40 +0800</lastBuildDate>
+    <atom:link href="https://awyugan.github.io/tags/eval/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>评估人工智能系统的挑战【译】</title>
+      <link>https://awyugan.github.io/2023/10/28/%E8%AF%84%E4%BC%B0%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8C%91%E6%88%98%E8%AF%91/</link>
+      <pubDate>Sat, 28 Oct 2023 17:00:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/28/%E8%AF%84%E4%BC%B0%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8C%91%E6%88%98%E8%AF%91/</guid>
+      <description>Anthropic 开发了 cluade2，2023年10月获得谷歌数亿美元投资。 介绍 大多数围绕人工智能（AI）社会影响的讨论通常都会涉及讨论 AI 系统的某些质量，</description>
+    </item>
+  </channel>
+</rss>

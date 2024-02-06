@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>【译】基于大型语言模型的智能体系统 | Awyugan&#39;s Blog</title>
+<meta name="keywords" content="翻译, LLM">
+<meta name="description" content="译自＠LilianWeng">
+<meta name="author" content="
+作者:&nbsp;lilian Weng">
+<link rel="canonical" href="https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.f609105c87baf33321189c18cb2cb85612ccb41c03a16449e1f731b7aad3e1c4.css" integrity="sha256-9gkQXIe68zMhGJwYyyy4VhLMtBwDoWRJ4fcxt6rT4cQ=" rel="preload stylesheet" as="style">
+
+
+<head>
+  
+  <script type="text/javascript">
+  MathJax = {
+    tex: {
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+    },
+  };
+</script>
+<script
+    async
+    id="MathJax-script"
+    src="https://cdn.jsdelivr.net/npm/mathjax@3.2.0/es5/tex-mml-chtml.js"
+    integrity="sha384-+BSz3oj3ILMYvOBr16U9i0H4RZRmGyQQ+1q9eqr8T3skmAFrJk8GmgwgqlCZdNSo"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+    type="text/javascript"></script>
+</head>
+<link rel="icon" href="https://awyugan.github.io/img/Q.gif">
+<link rel="icon" type="image/png" sizes="16x16" href="https://awyugan.github.io/img/Q.gif">
+<link rel="icon" type="image/png" sizes="32x32" href="https://awyugan.github.io/img/Q.gif">
+<link rel="apple-touch-icon" href="https://awyugan.github.io/Q.gif">
+<link rel="mask-icon" href="https://awyugan.github.io/Q.gif">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<noscript>
+	
+	<style>
+	.img-shadow {
+	    box-shadow: 8px 8px 10px rgba(0, 0, 0, 0.5);  
+	}
+	</style>
+	
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript><meta property="og:title" content="【译】基于大型语言模型的智能体系统" />
+<meta property="og:description" content="译自＠LilianWeng" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2023-09-26T14:13:31+08:00" />
+<meta property="article:modified_time" content="2023-09-26T14:13:31+08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="【译】基于大型语言模型的智能体系统"/>
+<meta name="twitter:description" content="译自＠LilianWeng"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://awyugan.github.io/post/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "【译】基于大型语言模型的智能体系统",
+      "item": "https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "【译】基于大型语言模型的智能体系统",
+  "name": "【译】基于大型语言模型的智能体系统",
+  "description": "译自＠LilianWeng",
+  "keywords": [
+    "翻译", "LLM"
+  ],
+  "articleBody": "June 23, 2023・31 min・Lilian Weng\n使用大型语言模型（LLM）作为其核心控制器构建代理是一个很酷的概念。例如 AutoGPT 、GPT-Engineer 和 BabyAGI 都是启发性的概念验证演示。大语言模型的潜力不仅仅是生成精美的文案、故事、论文和程序；它可以被视为一个强大的通用问题解决者。\n智能体 (agent) 系统概览 在一个 LLM 驱动的自主代理系统中，LLM 充当代理的大脑，辅以几个关键组件：\n计划\n子目标和分解：代理将大任务分解为较小、可管理的子目标，从而有效地处理复杂任务。 反思和完善：代理可以对过去的行为进行自我批评和反思，从错误中学习并为未来的步骤完善它们，从而提高最终结果的质量。 记忆\n短期记忆：我认为所有的上下文学习（参见 提示工程 ）都是利用模型的短期记忆进行学习。 长期记忆：这为代理提供了长时间保留和回忆（无限）信息的能力，通常通过利用外部向量存储和快速检索来实现。 工具使用\n代理学会调用外部 APIs 以获取模型权重中缺失的额外信息（在预训练后经常很难更改），包括当前信息、代码执行能力、访问专有信息源等。 图 1. LLM 驱动的自主代理系统概览。\n组件一：计划 一项复杂的任务通常涉及许多步骤。代理需要知道这些步骤并提前计划。\n任务分解 思维链（Chain of thought） (CoT; Wei et al. 2022 ) 已经成为增强模型在复杂任务上性能的标准提示技术。该模型被指导 “一步一步地思考”，以利用更多的测试时间计算来将困难的任务分解为更小、更简单的步骤。CoT 将大任务转化为多个可管理的任务，并为模型的思考过程提供了解释。\nTree of Thoughts (Yao et al. 2023 ) 通过在每一步探索多种推理可能性来扩展 CoT。它首先将问题分解为多个思考步骤，并在每一步生成多个思考，从而创建一个树结构。搜索过程可以是 BFS（广度优先搜索）或 DFS（深度优先搜索），每个状态都由分类器（通过提示）或多数票评估。\n任务分解可以通过 (1) 使用简单的提示，如 \"XYZ 的步骤（Steps for XYZ）.\\n1（这里 \\n 代表换行）.\"、\"实现 XYZ 的子目标是什么？（What are the subgoals for achieving XYZ?）\"，由 LLM 完成，(2) 使用任务特定的指令；例如，写小说时使用 \"写一个小说大纲（Write a story outline）.\"，或 (3) 使用人类输入。\n另一个截然不同的方法，LLM+P (Liu et al. 2023 )，依赖于一个外部的经典规划器来进行长期规划。这种方法使用规划域定义语言（PDDL）作为中间接口来描述规划问题。在这个过程中，LLM (1) 将问题翻译成 “Problem PDDL”，然后 (2) 根据现有的 “Domain PDDL” 请求一个经典规划器生成一个 PDDL 计划，最后 (3) 将 PDDL 计划翻译回自然语言。本质上，规划步骤是外包给一个外部工具，假设在某些机器人设置中有特定领域的 PDDL 和合适的规划器，但在许多其他领域中并不常见。\n自我反思 自我反思是一个至关重要的方面，它允许自主代理通过改进过去的行动决策和纠正以前的错误来迭代地提高。它在现实世界中需要不可避免地进行试错的任务中发挥着关键作用。\nReAct (Yao 等人，2023 ) 通过扩展动作空间将任务特定的离散动作和语言空间的组合，将推理和行动整合到 LLM 中。前者使 LLM 能够与环境互动（例如使用 Wikipedia 搜索 API），而后者提示 LLM 用自然语言生成推理痕迹。\nReAct 提示模板包含了让 LLM 思考的明确步骤，大致格式为：\n思考：... 行动：... 观察：... ... (多次重复) 图 2. 知识密集型任务（例如 HotpotQA、FEVER）和决策任务（例如 AlfWorld Env、WebShop）的推理轨迹示例。 (图片来源：Yao 等人，2023 )。\n在知识密集型任务和决策任务的实验中，ReAct 比只有 Act 的基线更好，其中 Thought: ... 步骤被移除。\nReflexion (Shinn \u0026 Labash 2023 ) 是一个框架，为代理提供动态记忆和自我反思能力，以提高推理技能。Reflexion 有一个标准的 RL 设置，其中奖励模型提供一个简单的二进制奖励，动作空间遵循 ReAct 中的设置，其中任务特定的动作空间与语言相结合，以实现复杂的推理步骤。在每一个动作 $a_t$ 之后，代理计算一个启发式 $h_t$，并根据自我反思的结果，可能会决定重置环境，开始一个新的试验。\n图 3. Reflexion 框架的示意图。 (图片来源：Shinn \u0026 Labash, 2023 )\n启发式函数确定何时轨迹是低效的或包含幻觉，并应该被停止。低效规划指的是花费太长时间没有成功的轨迹。幻觉被定义为遇到一系列连续相同的动作，导致在环境中得到相同的观察。\n通过向 LLM 展示两个示例来创建自我反思，每个示例是一个（失败的轨迹，为指导未来计划变化的理想反思）对。然后将反思添加到代理的工作记忆中，最多三个，作为查询 LLM 的上下文。\n图 4. 在 AlfWorld Env 和 HotpotQA 上的实验。在 AlfWorld 中，幻觉比低效规划更常见。 (图片来源：Shinn \u0026 Labash, 2023 )\nChain of Hindsight (CoH; Liu 等人，2023 ) 鼓励模型通过明确地向其展示一系列过去的输出，每个输出都带有反馈，来改进自己的输出。人类反馈数据是一个 $D_h = \\{(x, y_i , r_i , z_i)\\}_{i=1}^n$ 的集合，其中 $x$ 是提示，每个 $y_i$ 是一个模型完成，$r_i$ 是 $y_i$ 的人类评级，$z_i$ 是相应的人类提供的事后反馈。假设反馈元组按奖励排序，$r_n \\geq r_{n-1} \\geq \\dots \\geq r_1$ 这个过程是监督细调，其中数据是 $\\tau_h = (x, z_i, y_i, z_j, y_j, \\dots, z_n, y_n)$ 的形式，其中 $\\leq i \\leq j \\leq n$。模型被微调为只预测 $y_n$，其中基于序列前缀的条件，使模型可以基于反馈序列进行自我反思，以产生更好的输出。在测试时，模型可以选择性地接收与人类注释者的多轮指令。\n为了避免过拟合，CoH 增加了一个正则化项，以最大化预训练数据集的对数似然。为了避免走捷径和复制（因为在反馈序列中有许多常见的词），他们在训练过程中随机掩盖 0% - 5% 的过去的令牌。\n他们实验中的训练数据集是 WebGPT 比较 、来自人类反馈的摘要 和 人类偏好数据集 的组合。\n图 5. 使用 CoH 进行微调后，模型可以按照指令产生具有序列增量改进的输出。 (图片来源：Liu 等，2023 )\nCoH 的思想是在上下文中呈现一系列逐步改进的输出，并训练模型采纳这种趋势以产生更好的输出。算法蒸馏 (AD; Laskin 等，2023 ) 将同样的思想应用于强化学习任务中的跨情节轨迹，其中一个 算法 被封装在一个长的历史条件策略中。考虑到代理与环境多次互动，并且在每个情节中代理都会变得更好，AD 将这种学习历史连接起来并输入到模型中。因此，我们应该期望下一个预测的动作会比之前的尝试带来更好的性能。目标是学习 RL 的过程，而不是训练特定任务的策略本身。\n图 6. 算法蒸馏（AD）的工作原理示意图。 (图片来源：Laskin 等，2023 )。\n该论文假设，任何生成一组学习历史的算法都可以通过对行为进行克隆来蒸馏到神经网络中。历史数据是由一组源策略生成的，每个策略都针对特定的任务进行了训练。在训练阶段，每次 RL 运行时，都会随机抽取一个任务，并使用多情节历史的子序列进行训练，从而学到的策略是任务不可知的。\n实际上，模型的上下文窗口长度有限，因此情节应该足够短，以构建多情节历史。需要 2-4 个情节的多情节上下文来学习近乎最优的上下文 RL 算法。上下文 RL 的出现需要足够长的上下文。\n与三个基线相比，包括 ED（专家蒸馏，使用专家轨迹而不是学习历史的行为克隆）、源策略（用于通过 UCB 生成蒸馏轨迹）和 RL^2 (Duan 等，2017 ；用作上界，因为它需要在线 RL)，AD 展示了上下文 RL，性能接近 RL^2，尽管只使用离线 RL，并且比其他基线学得更快。当基于源策略的部分训练历史进行条件化时，AD 的改进速度也比 ED 基线快得多。\n图 7. AD、ED、源策略和 RL^2 在需要记忆和探索的环境上的比较。只分配二进制奖励。源策略是用 A3C 训练的 “dark” 环境和 DQN 训练的水迷宫。 (图片来源：Laskin 等，2023 )\n组件二：记忆 （非常感谢 ChatGPT 帮助我起草这一部分。在与 ChatGPT 的 对话 中，我学到了很多关于人类大脑和用于快速 MIPS 的数据结构的知识。）\n记忆的类型 记忆可以定义为用于获取、存储、保留和稍后检索信息的过程。人类大脑中有几种类型的记忆。\n感觉记忆：这是记忆的最早阶段，提供了在原始刺激结束后保留感觉信息（视觉、听觉等）的印象的能力。感觉记忆通常只持续几秒钟。子类别包括图像记忆（视觉）、回声记忆（听觉）和触觉记忆（触觉）。\n短时记忆（STM）或 工作记忆：它存储我们当前意识到的信息，并需要执行复杂的认知任务，如学习和推理。人们认为短时记忆的容量大约是 7 个项目（Miller 1956 ），并持续 20-30 秒。\n长时记忆（LTM）：长时记忆可以存储信息相当长的时间，从几天到几十年不等，其存储容量基本上是无限的。LTM 有两个子类型：\n显性 / 陈述性记忆：这是关于事实和事件的记忆，指的是那些可以有意识地回忆起来的记忆，包括情节记忆（事件和经验）和语义记忆（事实和概念）。 隐性 / 程序性记忆：这种记忆是无意识的，涉及自动执行的技能和例行程序，如骑自行车或在键盘上打字。 图 8. 人类记忆的分类。\n我们可以大致考虑以下映射：\n将感觉记忆视为学习原始输入的嵌入表示，包括文本、图像或其他模态； 将短时记忆视为上下文中的学习。它是短暂和有限的，因为它受到 Transformer 的有限上下文窗口长度的限制。 将长时记忆视为代理在查询时可以关注的外部向量存储，可以通过快速检索访问。 最大内积搜索（MIPS） 外部记忆可以缓解有限注意力跨度的限制。标准做法是将信息的嵌入表示保存到一个向量存储数据库中，该数据库支持快速的最大内积搜索（MIPS ）。为了优化检索速度，常见的选择是使用 近似最近邻 (ANN)​ 算法返回大致的前 k 个最近邻，以牺牲一点点的准确性换取巨大的速度提升。\n几种常见的用于快速 MIPS 的 ANN 算法选择：\nLSH (局部敏感哈希)：它引入了一个 哈希 函数，使得相似的输入项以高概率映射到同一个桶中，其中桶的数量远小于输入的数量。 ANNOY (近似最近邻哦耶)：核心数据结构是 随机投影树 ，一组二叉树，其中每个非叶节点代表一个超平面，将输入空间分为两半，每个叶子存储一个数据点。树是独立和随机建立的，所以在某种程度上，它模仿了一个哈希函数。ANNOY 搜索发生在所有的树中，迭代地搜索最接近查询的一半，然后汇总结果。这个想法与 KD 树很相关，但是更具可扩展性。 HNSW (分层可导航小世界)：它受到 小世界网络 的启发，其中大多数节点可以在少数几步内到达任何其他节点；例如，社交网络的 “六度分隔” 特性。HNSW 构建了这些小世界图的分层，其中底层包含实际的数据点。中间的层创建快捷方式来加速搜索。当执行搜索时，HNSW 从顶层的一个随机节点开始，并导航到目标。当它不能再接近时，它移动到下一层，直到到达底层。上层中的每一步都可以在数据空间中覆盖很大的距离，而下层中的每一步都可以提高搜索质量。 FAISS (Facebook AI 相似性搜索)：它基于这样一个假设，在高维空间中，节点之间的距离遵循高斯分布，因此应该存在数据点的 聚类 。FAISS 通过将向量空间划分为簇，然后在簇内进行精细化量化来应用向量量化。搜索首先查找粗量化的簇候选，然后进一步查看每个簇的细量化。 ScaNN (可扩展的最近邻)：ScaNN 中的主要创新是 各向异性向量量化 。它将数据点 $x_i$ 量化为 $\\tilde {x}_i$，使得内积 $\\langle q, x_i \\rangle$ 尽可能接近 $\\angle q, \\tilde {x}_i$ 的原始距离，而不是选择最近的量化中心点。 图 9. MIPS 算法的比较，以 recall@10 为测量标准。 (图片来源：Google 博客，2020 )\n在 ann-benchmarks.com 上查看更多 MIPS 算法和性能比较。\n组件三：工具使用 使用工具是人类的一个显著和区别性特征。我们创建、修改并使用外部物体来完成超出我们身体和认知限制的事情。为 LLMs 配备外部工具可以显著扩展模型的功能。\n图 10. 一只海獭在水中使用石头敲开贝壳的图片。尽管一些其他动物可以使用工具，但其复杂性与人类不可比拟。（图片来源：使用工具的动物 ）\nMRKL（Karpas et al. 2022 ），简称为 “模块化推理、知识和语言”，是一个用于自主代理的神经符号架构。MRKL 系统被提议包含一系列的 “专家” 模块，而通用目的的 LLM 作为路由器，将查询路由到最合适的专家模块。这些模块可以是神经的（例如深度学习模型）或符号的（例如数学计算器、货币转换器、天气 API）。\n他们做了一个关于微调 LLM 来调用计算器的实验，使用算术作为测试案例。他们的实验显示，解决口头数学问题比明确陈述的数学问题更困难，因为 LLMs（7B Jurassic1-large 模型）未能可靠地提取基本算术的正确参数。结果突出显示，当外部符号工具可以可靠地工作时，知道何时以及如何使用工具是至关重要的，这取决于 LLM 的能力。\nTALM（工具增强语言模型；Parisi et al. 2022 ）和 Toolformer（Schick et al. 2023 ）都微调了 LM，学会使用外部工具 API。数据集是基于是否新添加的 API 调用注释可以提高模型输出的质量来扩展的。在 Prompt Engineering 的 “外部 APIs” 部分 中查看更多细节。\nChatGPT 插件 和 OpenAI API 函数调用 是 LLMs 增强工具使用能力在实践中的良好示例。工具 API 的集合可以由其他开发者提供（如在插件中）或自定义（如在函数调用中）。\nHuggingGPT（Shen et al. 2023 ）是一个使用 ChatGPT 作为任务规划器来选择 HuggingFace 平台上可用的模型的框架，根据模型描述并根据执行结果总结响应。\n图 11. HuggingGPT 如何工作的示意图。（图片来源：Shen et al. 2023 ）\n该系统包括 4 个阶段：\n(1)任务规划：LLM 作为大脑，将用户请求解析为多个任务。每个任务都有四个与之相关的属性：任务类型、ID、依赖关系和参数。他们使用少量的示例来指导 LLM 进行任务解析和规划。\n指令：\nAI 助手可以将用户输入解析为几个任务：[{“task”: 任务，“id”, 任务 id, “dep”: 依赖任务 id, “args”: {“text”: 文本，“image”: URL, “audio”: URL, “video”: URL}}]。“dep” 字段表示生成新资源的先前任务的 id，当前任务依赖于该资源。一个特殊的标签 “-task_id” 指的是依赖于 id 为 task_id 的任务生成的文本、图像、音频和视频。任务必须从以下选项中选择：{{可用任务列表}}。任务之间存在逻辑关系，请注意它们的顺序。如果用户输入不能被解析，您需要回复空的 JSON。这里有几个案例供您参考：{{示范}}。聊天历史记录为 {{聊天历史}}。从这个聊天历史中，您可以找到用户提到的资源的路径，以供您进行任务规划。\n(2)模型选择：LLM 将任务分配给专家模型，其中请求被构建为多项选择问题。LLM 被呈现一个模型列表供其选择。由于上下文长度有限，需要基于任务类型进行过滤。\n指令：\n给定用户请求和调用命令，AI 助手帮助用户从模型列表中选择一个合适的模型来处理用户请求。AI 助手只输出最合适模型的模型 id。输出必须采用严格的 JSON 格式：“id”: “id”, “reason”: “选择的详细原因”。我们有一个模型列表供您选择 {{候选模型}}。请从列表中选择一个模型。\n(3)任务执行：专家模型对特定任务执行并记录结果。\n指令：\n使用输入和推断结果，AI 助手需要描述过程和结果。前面的阶段可以形成为 - 用户输入：{{用户输入}}，任务规划：{{任务}}，模型选择：{{模型分配}}，任务执行：{{预测}}。您必须首先以直接的方式回答用户的请求。然后描述任务过程，并以第一人称向用户展示您的分析和模型推断结果。如果推断结果包含文件路径，必须告诉用户完整的文件路径。\n(4)响应生成：LLM 接收执行结果并向用户提供总结结果。\n要将 HuggingGPT 投入实际使用，需要解决几个挑战：(1) 需要提高效率，因为 LLM 推断轮次和与其他模型的交互都会减慢过程；(2) 它依赖于一个长的上下文窗口来交流复杂的任务内容；(3) 需要提高 LLM 输出和外部模型服务的稳定性。\nAPI-Bank（Li et al. 2023 ）是一个用于评估工具增强 LLM 性能的基准。它包含 53 个常用的 API 工具，一个完整的工具增强 LLM 工作流程，以及 264 个注释的对话，涉及 568 个 API 调用。API 的选择非常多样，包括搜索引擎、计算器、日历查询、智能家居控制、日程管理、健康数据管理、帐户认证工作流等。因为有大量的 API，LLM 首先可以访问 API 搜索引擎来找到正确的 API 进行调用，然后使用相应的文档进行调用。\n图 12. LLM 在 API-Bank 中进行 API 调用的伪代码。（图片来源：Li et al. 2023 ）\n在 API-Bank 工作流中，LLMs 需要做出几个决策，每一步我们都可以评估该决策的准确性。决策包括：\n是否需要 API 调用。 确定要调用的正确 API：如果不够好，LLMs 需要迭代地修改 API 输入（例如，为搜索引擎 API 决定搜索关键词）。 根据 API 结果进行响应：如果结果不满意，模型可以选择细化并再次调用。 此基准测试代理的工具使用能力分为三个层次：\n第一级评估 调用 API 的能力。给定 API 的描述，模型需要确定是否调用给定的 API，正确调用它，并正确响应 API 返回。 第二级检查 检索 API 的能力。模型需要搜索可能解决用户需求的 API，并通过阅读文档学习如何使用它们。 第三级评估 计划 API 超出检索和调用 的能力。给定不明确的用户请求（例如，安排团体会议、为旅行预订航班 / 酒店 / 餐厅），模型可能需要进行多次 API 调用来解决它。 案例研究 科学发现代理 ChemCrow (Bran 等人，2023 ) 是一个特定领域的例子，其中 LLM 通过 13 个专家设计的工具进行增强，以完成有机合成、药物发现和材料设计的任务。在 LangChain 中实现的工作流反映了之前在 ReAct 和 MRKLs 中描述的内容，并结合了与任务相关的 CoT 推理和工具：\nLLM 被提供了一个工具名称列表，工具的实用性描述，以及关于预期输入 / 输出的详细信息。 然后指示它使用提供的工具在必要时回答用户给定的提示。指令建议模型遵循 ReAct 格式 - Thought, Action, Action Input, Observation。 一个有趣的观察是，虽然基于 LLM 的评估得出 GPT-4 和 ChemCrow 的表现几乎相同，但面向完成和化学正确性的解决方案的专家的人类评估显示，ChemCrow 的表现远远超过了 GPT-4。这表明在需要深入专业知识的领域使用 LLM 评估其自身的性能可能存在问题。缺乏专业知识可能导致 LLM 不知道自己的缺陷，因此不能很好地判断任务结果的正确性。\nBoiko 等人 (2023) 也研究了用于科学发现的 LLM-empowered 代理，以处理复杂科学实验的自主设计、规划和性能。这个代理可以使用工具浏览互联网、阅读文档、执行代码、调用机器人实验 API 并利用其他 LLM。\n例如，当被要求 “开发一种新的抗癌药物” 时，模型提出了以下推理步骤：\n询问当前的抗癌药物发现趋势； 选择一个目标； 请求一个针对这些化合物的骨架； 一旦确定了化合物，模型就尝试合成它。 他们还讨论了风险，尤其是非法药物和生物武器。他们开发了一个测试集，包含了一系列已知的化学武器剂，并要求代理合成它们。11 个请求中有 4 个 (36%) 被接受并获得了合成解决方案，代理尝试查阅文档来执行程序。11 个中有 7 个被拒绝，其中 7 个被拒绝的案例中，5 个是在网络搜索后，2 个是仅基于提示被拒绝的。\n生成代理模拟 Generative Agents (Park 等人，2023 ) 是一个超级有趣的实验，其中 25 个由 LLM-powered 代理控制的虚拟角色生活和互动在一个沙盒环境中，受到 The Sims 的启发。生成代理为交互应用创建了可信的人类行为模拟。\n生成代理的设计结合了 LLM 与记忆、规划和反思机制，使代理能够根据过去的经验进行行为，并与其他代理互动。\nMemory 流：是一个长期记忆模块（外部数据库），记录了代理在自然语言中的经验的全面列表。 每个元素都是一个 观察 ，一个由代理直接提供的事件。- 代理间的通信可以触发新的自然语言陈述。 Retrieval 模型：根据相关性、近期性和重要性表面化上下文以通知代理的行为。 近期性：最近的事件得分较高 重要性：区分日常和核心记忆。直接询问 LM。 相关性：基于与当前情况 / 查询的相关性。 Reflection机制：随着时间的推移，将记忆综合为更高级的推断，并指导代理的未来行为。它们是 过去事件的高级摘要 (\u003c- 注意这与上面的 自我反思 略有不同) 使用 100 个最近的观察提示 LM，并生成给定一组观察 / 陈述的 3 个最显著的高级问题。然后要求 LM 回答这些问题。 规划与反应：将反思和环境信息转化为行动 规划本质上是为了优化当前时刻的可信度与时间。 提示模板：{代理 X 的介绍}。这是 X 今天的计划概述：1) 在规划和反应中都考虑了代理之间的关系以及一个代理对另一个代理的观察。 环境信息以树结构呈现。 图 13. 生成代理架构。 (图片来源：Park 等人，2023 )\n这个有趣的模拟导致了紧急的社交行为，如信息扩散、关系记忆（例如，两个代理继续对话主题）和社交活动的协调（例如，举办一个派对并邀请许多其他人）。\n概念验证示例 AutoGPT 引起了很多关注，探讨了使用 LLM 作为主控制器设置自主代理的可能性。鉴于自然语言界面，它有很多可靠性问题，但尽管如此，它仍然是一个很酷的概念验证演示。AutoGPT 中的很多代码都是关于格式解析的。\n这是 AutoGPT 使用的系统消息，其中 {{...}} 是用户输入：\n你是 {{ai-name}}，{{用户提供的 AI 机器人描述}}。 你的决策必须始终独立地做出，而不寻求用户的帮助。充分发挥你作为 LLM 的优势，采用简单的策略，不涉及法律问题。 目标： 1. {{用户提供的目标 1}} 2. {{用户提供的目标 2}} 3. ... 4. ... 5. ... 约束： 1. 短期记忆的～4000 字限制。你的短期记忆很短，所以立即将重要信息保存到文件中。 2. 如果你不确定你之前是如何做某事的，或者想回忆过去的事件，思考类似的事件会帮助你记住。 3. 没有用户帮助 4. 仅使用双引号中列出的命令，例如 \"命令名称\" 5. 对于几分钟内不会终止的命令，使用子进程 命令： 1. Google 搜索：\"google\"，args：\"input\"：\"\u003c搜索\u003e\" 2. 浏览网站：\"browse_website\"，args：\"url\"：\"\"，\"question\"：\"\u003c你想在网站上找到的内容\u003e\" 3. 启动 GPT 代理：\"start_agent\"，args：\"name\"：\"\"，\"task\"：\"\"，\"prompt\"：\"\" 4. 消息 GPT 代理：\"message_agent\"，args：\"key\"：\"\"，\"message\"：\"\" 5. 列出 GPT 代理：\"list_agents\"，args： 6. 删除 GPT 代理：\"delete_agent\"，args：\"key\"：\"\" 7. 克隆存储库：\"clone_repository\"，args：\"repository_url\"：\"\"，\"clone_path\"：\"\" 8. 写入文件：\"write_to_file\"，args：\"file\"：\"\"，\"text\"：\"\" 9. 读取文件：\"read_file\"，args：\"file\"：\"\" 10. 追加到文件：\"append_to_file\"，args：\"file\"：\"\"，\"text\"：\"\" 11. 删除文件：\"delete_file\"，args：\"file\"：\"\" 12. 搜索文件：\"search_files\"，args：\"directory\"：\"\" 13. 分析代码：\"analyze_code\"，args：\"code\"：\"\" 14. 获取改进的代码：\"improve_code\"，args：\"suggestions\"：\"\u003c建议列表\u003e\"，\"code\"：\"\" 15. 编写测试：\"write_tests\"，args：\"code\"：\"\"，\"focus\"：\"\u003c关注点列表\u003e\" 16. 执行 Python 文件：\"execute_python_file\"，args：\"file\"：\"\" 17. 生成图像：\"generate_image\"，args：\"prompt\"：\"\" 18. 发送推文：\"send_tweet\"，args：\"text\"：\"\" 19. 什么都不做：\"do_nothing\"，args： 20. 任务完成（关机）：\"task_complete\"，args：\"reason\"：\"\" 资源： 1. 用于搜索和信息收集的互联网访问。 2. 长期记忆管理。 3. 用于简单任务委派的 GPT-3.5 代理。 4. 文件输出。 性能评估： 1. 持续审查和分析你的行为，确保你尽力而为。 2. 不断地自我批评你的大局行为。 3. 反思过去的决策和策略，完善你的方法。 4. 每个命令都有成本，所以要聪明且高效。目标是在最少的步骤中完成任务。 你应该只按照下面描述的 JSON 格式回应 响应格式： { \"thoughts\": { \"text\": \"思考\", \"reasoning\": \"推理\", \"plan\": \"- 简短的项目列表 \\n- 传达 \\n- 长期计划\", \"criticism\": \"建设性的自我批评\", \"speak\": \"对用户说的思考总结\" }, \"command\": { \"name\": \"命令名称\", \"args\": {\"arg name\": \"值\"} } } 确保响应可以由 Python json.loads 解析 GPT-Engineer 是另一个项目，旨在根据自然语言中指定的任务创建整个代码存储库。GPT-Engineer 被指示考虑构建的一系列较小的组件，并在需要时询问用户输入以澄清问题。\n以下是发送给 GPT-Engineer 使用的 OpenAI ChatCompletion 端点的任务澄清的示例对话。用户输入用 {{用户输入文本}} 包装。\n[ { \"role\": \"system\", \"content\": \"你将阅读指令并不执行它们，只寻求澄清它们。\\n 具体来说，你首先会总结一系列需要澄清的超短子弹点。\\n 然后你会提出一个澄清问题，并等待用户的答复。\\n\" }, { \"role\": \"user\", \"content\": \"我们正在写 {{一个用 python 编写的 Super Mario 游戏。MVC 组件分开在不同的文件中。键盘控制。}}\\n\" }, { \"role\": \"assistant\", \"content\": \"需要澄清的领域的总结：\\n1. Super Mario 游戏的具体内容（例如，关卡设计、角色、游戏玩法机制）\\n2. 关于 MVC 组件的细节（例如，每个文件中有哪些组件）\\n3. 键盘控制实现的细节（例如，使用哪些键，如何处理输入）\\n\\n 澄清问题：\\n 你能提供更多关于 Super Mario 游戏的细节吗，比如关卡设计、角色和游戏玩法机制？\" }, { \"role\": \"user\", \"content\": \"{{总共有 10 个关卡。主要角色是一个叫 Mario 的管道工，他可以走和跳。这是一个像 Super Mario 那样的经典平台游戏。主角从左到右移动，试图到达目的地，在过程中有许多障碍和敌人的攻击。}}\\n\\n 还有什么不清楚的吗？如果是，请只按以下形式回答：\\n {剩余的不清楚的领域} 剩余的问题。\\n {下一个问题}\\n 如果一切都足够清楚，只回答 \\\" 没有更多需要澄清的。\\\"\" }, { \"role\": \"assistant\", \"content\": \"剩余的不清楚的领域：2 个剩余的问题。\\n 你能提供更多关于如何将 MVC 组件分割到不同文件中的信息吗？\" }, { \"role\": \"user\", \"content\": \"{{根据你自己的假设，并在开始之前明确地陈述它们}}\" } ] 然后，在这些澄清之后，代理进入了代码编写模式，使用了一个不同的系统消息。系统消息：\n你将获得编写代码的指令。你将写一个非常长的答案。确保最终实施了架构的每一个细节。确保最终实施了架构的每一个细节。\n一步一步地思考，并自己推理出正确的决策，确保我们做得对。你首先会列出必要的核心类、函数、方法的名称，以及它们的目的的简短评论。\n然后你将输出每个文件的内容，包括所有的代码。每个文件必须严格遵循 markdown 代码块格式，其中以下标记必须被替换，使得 FILENAME 是包括文件扩展名的小写文件名，LANG 是代码的语言的标记代码块语言，CODE 是代码：\nFILENAME\nCODE 你将从 “入口点” 文件开始，然后转到由该文件导入的文件，依此类推。请注意，代码应该是完全功能的。没有占位符。\n遵循适当的语言和框架最佳实践文件命名约定。确保文件包含所有的导入、类型等。确保不同文件中的代码彼此兼容。确保实施所有代码，如果你不确定，写一个可能的实施。包括模块依赖或包管理器依赖定义文件。在你完成之前，仔细检查文件中是否存在架构的所有部分。\n有用的知识：你几乎总是把不同的类放在不同的文件中。对于 Python，你总是创建一个适当的 requirements.txt 文件。对于 NodeJS，你总是创建一个适当的 package.json 文件。你总是在函数定义上添加一个简短的描述其目的的评论。你试图添加解释非常复杂的逻辑的评论。你总是遵循所请求的语言的最佳实践，描述所写的代码作为一个定义的包 / 项目。\nPython 工具带偏好：\npytest dataclasses 对话样本：\n[ { \"role\": \"system\", \"content\": \"你将获得编写代码的指令。\\n 你将写一个非常长的答案。确保最终实施了架构的每一个细节。确保最终实施了架构的每一个细节。\\n\\n 一步一步地思考，并自己推理出正确的决策，确保我们做得对。\\n 你首先会列出必要的核心类、函数、方法的名称，以及它们的目的的简短评论。\\n\\n 然后你将输出每个文件的内容，包括所有的代码。\\n 每个文件必须严格遵循 markdown 代码块格式，其中以下标记必须被替换，使得 \\nFILENAME 是包括文件扩展名的小写文件名，\\nLANG 是代码的语言的标记代码块语言，CODE 是代码：\\n\\nFILENAME\\n```LANG\\nCODE\\n```\\n\\n 你将从\" 入口点 \"文件开始，然后转到由该文件导入的文件，依此类推。\\n 请注意，代码应该是完全功能的。没有占位符。\\n\\n 遵循适当的语言和框架最佳实践文件命名约定。\\n 确保文件包含所有的导入、类型等。确保不同文件中的代码彼此兼容。\\n 在你完成之前，仔细检查文件中是否存在架构的所有部分。\\n\\n 有用的知识：\\n 你几乎总是把不同的类放在不同的文件中。\\n 对于 Python，你总是创建一个适当的 requirements.txt 文件。\\n 对于 NodeJS，你总是创建一个适当的 package.json 文件。\\n 你总是在函数定义上添加一个简短的描述其目的的评论。\\n 你试图添加解释非常复杂的逻辑的评论。\\n 你总是遵循所请求的语言的最佳实践，描述所写的代码作为一个定义 \\n 包 / 项目。\\n\\n\\nPython 工具带偏好：\\n- pytest\\n- dataclasses\\n\" }, # ... 与之前相同的对话，以 \"根据你自己的假设，并在开始之前明确地陈述它们\" 结束。 { \"role\": \"assistant\", \"content\": \"假设：\\n1. 模型：模型将包含游戏的数据，如关卡信息、角色状态和敌人位置。\\n2. 视图：视图将处理游戏的视觉效果，包括渲染游戏对象、背景和更新显示。\\n3. 控制器：控制器将管理用户输入，如键盘控制，并相应地更新模型。\\n\\n 考虑到这些假设，你是否希望我澄清键盘控制实现的任何特定方面？\" }, { \"role\": \"user\", \"content\": \"请现在记住步骤：\\n\\n 一步一步地思考，并自己推理出正确的决策，确保我们做得对。\\n 首先列出必要的核心类、函数、方法的名称，以及它们的目的的简短评论。\\n\\n 然后你将输出每个文件的内容，包括所有的代码。\\n 每个文件必须严格遵循 markdown 代码块格式，其中以下标记必须被替换，使得 \\nFILENAME 是包括文件扩展名的小写文件名，\\nLANG 是代码的语言的标记代码块语言，CODE 是代码：\\n\\nFILENAME\\n```LANG\\nCODE\\n```\\n\\n 你将从\" 入口点 \"文件开始，然后转到由该文件导入的文件，依此类推。\\n 请注意，代码应该是完全功能的。没有占位符。\\n\\n 遵循适当的语言和框架最佳实践文件命名约定。\\n 确保文件包含所有的导入、类型等。确保不同文件中的代码彼此兼容。\\n 在你完成之前，仔细检查文件中是否存在架构的所有部分。\\n\\n 有用的知识：\\n 你几乎总是把不同的类放在不同的文件中。\\n 对于 Python，你总是创建一个适当的 requirements.txt 文件。\\n 对于 NodeJS，你总是创建一个适当的 package.json 文件。\\n 你总是在函数定义上添加一个简短的描述其目的的评论。\\n 你试图添加解释非常复杂的逻辑的评论。\\n 你总是遵循所请求的语言的最佳实践，描述所写的代码作为一个定义 \\n 包 / 项目。\\n\\n\\nPython 工具带偏好：\\n- pytest\\n- dataclasses\\n\\n 现在，请开始编写代码。\" }, { \"role\": \"assistant\", \"content\": \"明白了。让我们开始。\\n\\n 首先，我会列出核心类、函数和方法的名称，以及它们的目的的简短评论。\\n\\n 核心类和函数：\\n1.`Game`- 主游戏类，负责初始化和运行游戏循环。\\n2.`Level`- 表示游戏中的一个关卡。\\n3.`Player`- 表示玩家角色 Mario。\\n4.`Enemy`- 表示游戏中的敌人。\\n5.`Controller`- 处理用户输入。\\n6.`View`- 负责渲染游戏的视觉效果。\\n7.`Model`- 包含游戏的数据，如关卡信息、角色状态和敌人位置。\\n\\n 接下来，我会为每个类和函数提供代码实现。\" }, # ... 这里会有更多的对话，其中助理提供了代码实现。 ] 这些对话示例展示了如何使用 OpenAI API 来创建自然语言驱动的编程助手。这些助手可以根据用户的指示生成代码、解决问题或执行其他任务。\n结论 OpenAI 的 API 为开发者提供了一个强大的工具，可以利用自然语言模型来解决各种问题。从简单的查询和任务到复杂的编程和设计挑战，API 都能够提供有价值的答案和解决方案。这篇文章提供了一些\n挑战 在深入了解构建以 LLM 为中心的代理的关键思想和演示后，我开始看到一些常见的限制：\n有限的上下文长度：受限的上下文容量限制了历史信息、详细指令、API 调用上下文和响应的包含。系统的设计必须与这种有限的通信带宽一起工作，而像自我反思这样的机制从长或无限的上下文窗口中受益很大。尽管向量存储和检索可以提供对更大知识库的访问，但它们的表示能力不如完全关注那么强大。 长期规划和任务分解的挑战：在冗长的历史上进行规划和有效地探索解决方案空间仍然是一个挑战。当面对意外的错误时，LLMs 难以调整计划，使它们与通过试验和错误学习的人类相比显得不那么稳健。 自然语言界面的可靠性：当前的代理系统依赖于自然语言作为 LLMs 和外部组件（如内存和工具）之间的界面。然而，模型输出的可靠性是有问题的，因为 LLMs 可能会犯格式错误，并偶尔表现出叛逆的行为（例如，拒绝遵循指令）。因此，许多代理演示代码都集中在解析模型输出上。 引用 Cited as:\nWeng, Lilian. (Jun 2023). LLM-powered Autonomous Agents\". Lil’Log. https://lilianweng.github.io/posts/2023-06-23-agent/ .\nOr\n@article {weng2023prompt, title = \"LLM-powered Autonomous Agents\"\", author = \"Weng, Lilian\", journal = \"lilianweng.github.io\", year = \"2023\", month = \"Jun\", url = \"https://lilianweng.github.io/posts/2023-06-23-agent/\" } References [1] Wei et al. “Chain of thought prompting elicits reasoning in large language models.” NeurIPS 2022\n[2] Yao et al. “Tree of Thoughts: Dliberate Problem Solving with Large Language Models.” arXiv preprint arXiv:2305.10601 (2023).\n[3] Liu et al. “Chain of Hindsight Aligns Language Models with Feedback” arXiv preprint arXiv:2302.02676 (2023).\n[4] Liu et al. “LLM+P: Empowering Large Language Models with Optimal Planning Proficiency” arXiv preprint arXiv:2304.11477 (2023).\n[5] Yao et al. “ReAct: Synergizing reasoning and acting in language models.” ICLR 2023.\n[6] Google Blog. “Announcing ScaNN: Efficient Vector Similarity Search” July 28, 2020.\n[7] https://chat.openai.com/share/46ff149e-a4c7-4dd7-a800-fc4a642ea389 [8] Shinn \u0026 Labash. “Reflexion: an autonomous agent with dynamic memory and self-reflection” arXiv preprint arXiv:2303.11366 (2023).\n[9] Laskin et al. “In-context Reinforcement Learning with Algorithm Distillation” ICLR 2023.\n[10] Karpas et al. “MRKL Systems A modular, neuro-symbolic architecture that combines large language models, external knowledge sources and discrete reasoning.” arXiv preprint arXiv:2205.00445 (2022).\n[11] Weaviate Blog. Why is Vector Search so fast? Sep 13, 2022.\n[12] Li et al. “API-Bank: A Benchmark for Tool-Augmented LLMs” arXiv preprint arXiv:2304.08244 (2023).\n[13] Shen et al. “HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in HuggingFace” arXiv preprint arXiv:2303.17580 (2023).\n[14] Bran et al. “ChemCrow: Augmenting large-language models with chemistry tools.” arXiv preprint arXiv:2304.05376 (2023).\n[15] Boiko et al. “Emergent autonomous scientific research capabilities of large language models.” arXiv preprint arXiv:2304.05332 (2023).\n[16] Joon Sung Park, et al. “Generative Agents: Interactive Simulacra of Human Behavior.” arXiv preprint arXiv:2304.03442 (2023).\n[17] AutoGPT. https://github.com/Significant-Gravitas/Auto-GPT [18] GPT-Engineer. https://github.com/AntonOsika/gpt-engineer nlp language-model agent steerability prompting ",
+  "wordCount" : "14552",
+  "inLanguage": "en",
+  "datePublished": "2023-09-26T14:13:31+08:00",
+  "dateModified": "2023-09-26T14:13:31+08:00",
+  "author":{
+    "@type": "Person",
+    "name": "lilian Weng"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Awyugan's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://awyugan.github.io/img/Q.gif"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://awyugan.github.io" accesskey="h" title="Awyugan&#39;s Blog (Alt + H)">
+                <img src="https://awyugan.github.io/img/avatar.jpg" alt="" aria-label="logo"
+                    height="35">Awyugan&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://awyugan.github.io/search/" title="Search">
+                    <span>🔍 搜索</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/" title="Awyugan&#39;s Blog">
+                    <span>🏠 主页</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/archives/" title="Archives">
+                    <span>🗃️ 归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/tags/" title="Tags">
+                    <span>🔖 标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/about/" title="关于我">
+                    <span>ℹ️ 关于</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://awyugan.github.io">Home</a>&nbsp;»&nbsp;<a href="https://awyugan.github.io/post/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      【译】基于大型语言模型的智能体系统
+    </h1>
+    <div class="post-description">
+      译自＠LilianWeng
+    </div>
+    <div class="post-meta">
+
+
+
+
+
+
+
+
+
+
+创建:&nbsp;<span title='2023-09-26 14:13:31 +0800 CST'>2023-09-26</span>&nbsp;·&nbsp;更新:&nbsp;2023-09-26&nbsp;·&nbsp;字数:&nbsp;14552字&nbsp;·&nbsp;时长: 30分钟&nbsp;·&nbsp;
+作者:&nbsp;lilian Weng
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#%e6%99%ba%e8%83%bd%e4%bd%93-agent-%e7%b3%bb%e7%bb%9f%e6%a6%82%e8%a7%88" aria-label="智能体 (agent) 系统概览">智能体 (agent) 系统概览</a></li>
+                <li>
+                    <a href="#%e7%bb%84%e4%bb%b6%e4%b8%80%e8%ae%a1%e5%88%92" aria-label="组件一：计划">组件一：计划</a><ul>
+                        
+                <li>
+                    <a href="#%e4%bb%bb%e5%8a%a1%e5%88%86%e8%a7%a3" aria-label="任务分解">任务分解</a></li>
+                <li>
+                    <a href="#%e8%87%aa%e6%88%91%e5%8f%8d%e6%80%9d" aria-label="自我反思">自我反思</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e7%bb%84%e4%bb%b6%e4%ba%8c%e8%ae%b0%e5%bf%86" aria-label="组件二：记忆">组件二：记忆</a><ul>
+                        
+                <li>
+                    <a href="#%e8%ae%b0%e5%bf%86%e7%9a%84%e7%b1%bb%e5%9e%8b" aria-label="记忆的类型">记忆的类型</a></li>
+                <li>
+                    <a href="#%e6%9c%80%e5%a4%a7%e5%86%85%e7%a7%af%e6%90%9c%e7%b4%a2mips" aria-label="最大内积搜索（MIPS）">最大内积搜索（MIPS）</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e7%bb%84%e4%bb%b6%e4%b8%89%e5%b7%a5%e5%85%b7%e4%bd%bf%e7%94%a8" aria-label="组件三：工具使用">组件三：工具使用</a></li>
+                <li>
+                    <a href="#%e6%a1%88%e4%be%8b%e7%a0%94%e7%a9%b6" aria-label="案例研究">案例研究</a><ul>
+                        
+                <li>
+                    <a href="#%e7%a7%91%e5%ad%a6%e5%8f%91%e7%8e%b0%e4%bb%a3%e7%90%86" aria-label="科学发现代理">科学发现代理</a></li>
+                <li>
+                    <a href="#%e7%94%9f%e6%88%90%e4%bb%a3%e7%90%86%e6%a8%a1%e6%8b%9f" aria-label="生成代理模拟">生成代理模拟</a></li>
+                <li>
+                    <a href="#%e6%a6%82%e5%bf%b5%e9%aa%8c%e8%af%81%e7%a4%ba%e4%be%8b" aria-label="概念验证示例">概念验证示例</a></li>
+                <li>
+                    <a href="#%e7%bb%93%e8%ae%ba" aria-label="结论">结论</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e6%8c%91%e6%88%98" aria-label="挑战">挑战</a></li>
+                <li>
+                    <a href="#%e5%bc%95%e7%94%a8" aria-label="引用">引用</a></li>
+                <li>
+                    <a href="#references" aria-label="References">References</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>June 23, 2023・31 min・Lilian Weng</p>
+<p>使用大型语言模型（LLM）作为其核心控制器构建代理是一个很酷的概念。例如 <a href="https://github.com/Significant-Gravitas/Auto-GPT" target="_blank" rel="noopener">AutoGPT</a>
+、<a href="https://github.com/AntonOsika/gpt-engineer" target="_blank" rel="noopener">GPT-Engineer</a>
+ 和 <a href="https://github.com/yoheinakajima/babyagi" target="_blank" rel="noopener">BabyAGI</a>
+ 都是启发性的概念验证演示。大语言模型的潜力不仅仅是生成精美的文案、故事、论文和程序；它可以被视为一个强大的通用问题解决者。</p>
+<h1 id="智能体-agent-系统概览">智能体 (agent) 系统概览<a hidden class="anchor" aria-hidden="true" href="#智能体-agent-系统概览">#</a></h1>
+<p>在一个 LLM 驱动的自主代理系统中，LLM 充当代理的大脑，辅以几个关键组件：</p>
+<ul>
+<li>
+<p><strong>计划</strong></p>
+<ul>
+<li>子目标和分解：代理将大任务分解为较小、可管理的子目标，从而有效地处理复杂任务。</li>
+<li>反思和完善：代理可以对过去的行为进行自我批评和反思，从错误中学习并为未来的步骤完善它们，从而提高最终结果的质量。</li>
+</ul>
+</li>
+<li>
+<p><strong>记忆</strong></p>
+<ul>
+<li>短期记忆：我认为所有的上下文学习（参见 <a href="https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/" target="_blank" rel="noopener">提示工程</a>
+）都是利用模型的短期记忆进行学习。</li>
+<li>长期记忆：这为代理提供了长时间保留和回忆（无限）信息的能力，通常通过利用外部向量存储和快速检索来实现。</li>
+</ul>
+</li>
+<li>
+<p><strong>工具使用</strong></p>
+<ul>
+<li>代理学会调用外部 APIs 以获取模型权重中缺失的额外信息（在预训练后经常很难更改），包括当前信息、代码执行能力、访问专有信息源等。</li>
+</ul>
+</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/mMe7NEFCWKmFmYGxDyiDFD"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/mMe7NEFCWKmFmYGxDyiDFD" alt="代理系统概览" border="0" /></a>
+图 1. LLM 驱动的自主代理系统概览。</p>
+<h1 id="组件一计划">组件一：计划<a hidden class="anchor" aria-hidden="true" href="#组件一计划">#</a></h1>
+<p>一项复杂的任务通常涉及许多步骤。代理需要知道这些步骤并提前计划。</p>
+<h2 id="任务分解">任务分解<a hidden class="anchor" aria-hidden="true" href="#任务分解">#</a></h2>
+<p><strong>思维链（Chain of thought）</strong> (CoT; <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Wei et al. 2022</a>
+) 已经成为增强模型在复杂任务上性能的标准提示技术。该模型被指导 &ldquo;一步一步地思考&rdquo;，以利用更多的测试时间计算来将困难的任务分解为更小、更简单的步骤。CoT 将大任务转化为多个可管理的任务，并为模型的思考过程提供了解释。</p>
+<p><strong>Tree of Thoughts</strong> (<a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">Yao et al. 2023</a>
+) 通过在每一步探索多种推理可能性来扩展 CoT。它首先将问题分解为多个思考步骤，并在每一步生成多个思考，从而创建一个树结构。搜索过程可以是 BFS（广度优先搜索）或 DFS（深度优先搜索），每个状态都由分类器（通过提示）或多数票评估。</p>
+<p>任务分解可以通过 (1) 使用简单的提示，如 <code>&quot;XYZ 的步骤（Steps for XYZ）.\n1（这里 \n 代表换行）.&quot;</code>、<code>&quot;实现 XYZ 的子目标是什么？（What are the subgoals for achieving XYZ?）&quot;</code>，由 LLM 完成，(2) 使用任务特定的指令；例如，写小说时使用 <code>&quot;写一个小说大纲（Write a story outline）.&quot;</code>，或 (3) 使用人类输入。</p>
+<p>另一个截然不同的方法，<strong>LLM+P</strong> (<a href="https://arxiv.org/abs/2304.11477" target="_blank" rel="noopener">Liu et al. 2023</a>
+)，依赖于一个外部的经典规划器来进行长期规划。这种方法使用规划域定义语言（PDDL）作为中间接口来描述规划问题。在这个过程中，LLM (1) 将问题翻译成 &ldquo;Problem PDDL&rdquo;，然后 (2) 根据现有的 &ldquo;Domain PDDL&rdquo; 请求一个经典规划器生成一个 PDDL 计划，最后 (3) 将 PDDL 计划翻译回自然语言。本质上，规划步骤是外包给一个外部工具，假设在某些机器人设置中有特定领域的 PDDL 和合适的规划器，但在许多其他领域中并不常见。</p>
+<h2 id="自我反思">自我反思<a hidden class="anchor" aria-hidden="true" href="#自我反思">#</a></h2>
+<p>自我反思是一个至关重要的方面，它允许自主代理通过改进过去的行动决策和纠正以前的错误来迭代地提高。它在现实世界中需要不可避免地进行试错的任务中发挥着关键作用。</p>
+<p><strong>ReAct</strong> (<a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao 等人，2023</a>
+) 通过扩展动作空间将任务特定的离散动作和语言空间的组合，将推理和行动整合到 LLM 中。前者使 LLM 能够与环境互动（例如使用 Wikipedia 搜索 API），而后者提示 LLM 用自然语言生成推理痕迹。</p>
+<p>ReAct 提示模板包含了让 LLM 思考的明确步骤，大致格式为：</p>
+<pre><code>思考：...
+行动：...
+观察：...
+... (多次重复)
+</code></pre>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/sBP1pEjsrPyT8eDj1YYMDr"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/sBP1pEjsrPyT8eDj1YYMDr" alt="react.png" border="0" /></a></p>
+<p>图 2. 知识密集型任务（例如 HotpotQA、FEVER）和决策任务（例如 AlfWorld Env、WebShop）的推理轨迹示例。 (图片来源：<a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao 等人，2023</a>
+)。</p>
+<p>在知识密集型任务和决策任务的实验中，<code>ReAct</code> 比只有 <code>Act</code> 的基线更好，其中 <code>Thought: ...</code> 步骤被移除。</p>
+<p><strong>Reflexion</strong> (<a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">Shinn &amp; Labash 2023</a>
+) 是一个框架，为代理提供动态记忆和自我反思能力，以提高推理技能。Reflexion 有一个标准的 RL 设置，其中奖励模型提供一个简单的二进制奖励，动作空间遵循 ReAct 中的设置，其中任务特定的动作空间与语言相结合，以实现复杂的推理步骤。在每一个动作 $a_t$ 之后，代理计算一个启发式 $h_t$，并根据自我反思的结果，可能会决定重置环境，开始一个新的试验。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/xz1twj6LvwQzWtJghEaNb8"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/xz1twj6LvwQzWtJghEaNb8" alt="reflexion.png" border="0" /></a></p>
+<p>图 3. Reflexion 框架的示意图。 (图片来源：<a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">Shinn &amp; Labash, 2023</a>
+)</p>
+<p>启发式函数确定何时轨迹是低效的或包含幻觉，并应该被停止。低效规划指的是花费太长时间没有成功的轨迹。幻觉被定义为遇到一系列连续相同的动作，导致在环境中得到相同的观察。</p>
+<p>通过向 LLM 展示两个示例来创建自我反思，每个示例是一个（失败的轨迹，为指导未来计划变化的理想反思）对。然后将反思添加到代理的工作记忆中，最多三个，作为查询 LLM 的上下文。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/breNCvAn2ZGxWPNFJjqD4F"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/breNCvAn2ZGxWPNFJjqD4F" alt="reflexion-exp.png" border="0" /></a></p>
+<p>图 4. 在 AlfWorld Env 和 HotpotQA 上的实验。在 AlfWorld 中，幻觉比低效规划更常见。 (图片来源：<a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">Shinn &amp; Labash, 2023</a>
+)</p>
+<p><strong>Chain of Hindsight</strong> (CoH; <a href="https://arxiv.org/abs/2302.02676" target="_blank" rel="noopener">Liu 等人，2023</a>
+) 鼓励模型通过明确地向其展示一系列过去的输出，每个输出都带有反馈，来改进自己的输出。人类反馈数据是一个 $D_h = \{(x, y_i , r_i , z_i)\}_{i=1}^n$ 的集合，其中 $x$ 是提示，每个 $y_i$ 是一个模型完成，$r_i$ 是 $y_i$ 的人类评级，$z_i$ 是相应的人类提供的事后反馈。假设反馈元组按奖励排序，$r_n \geq r_{n-1} \geq \dots \geq r_1$ 这个过程是监督细调，其中数据是 $\tau_h = (x, z_i, y_i, z_j, y_j, \dots, z_n, y_n)$ 的形式，其中 $\leq i \leq j \leq n$。模型被微调为只预测 $y_n$，其中基于序列前缀的条件，使模型可以基于反馈序列进行自我反思，以产生更好的输出。在测试时，模型可以选择性地接收与人类注释者的多轮指令。</p>
+<p>为了避免过拟合，CoH 增加了一个正则化项，以最大化预训练数据集的对数似然。为了避免走捷径和复制（因为在反馈序列中有许多常见的词），他们在训练过程中随机掩盖 0% - 5% 的过去的令牌。</p>
+<p>他们实验中的训练数据集是 <a href="https://huggingface.co/datasets/openai/webgpt_comparisons" target="_blank" rel="noopener">WebGPT 比较</a>
+、<a href="https://github.com/openai/summarize-from-feedback" target="_blank" rel="noopener">来自人类反馈的摘要</a>
+ 和 <a href="https://github.com/anthropics/hh-rlhf" target="_blank" rel="noopener">人类偏好数据集</a>
+ 的组合。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/jeaabWq7esBaY7Bg8K7rbB"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/jeaabWq7esBaY7Bg8K7rbB" alt="CoH.png" border="0" /></a></p>
+<p>图 5. 使用 CoH 进行微调后，模型可以按照指令产生具有序列增量改进的输出。 (图片来源：<a href="https://arxiv.org/abs/2302.02676" target="_blank" rel="noopener">Liu 等，2023</a>
+)</p>
+<p>CoH 的思想是在上下文中呈现一系列逐步改进的输出，并训练模型采纳这种趋势以产生更好的输出。<strong>算法蒸馏</strong> (AD; <a href="https://arxiv.org/abs/2210.14215" target="_blank" rel="noopener">Laskin 等，2023</a>
+) 将同样的思想应用于强化学习任务中的跨情节轨迹，其中一个 <em>算法</em> 被封装在一个长的历史条件策略中。考虑到代理与环境多次互动，并且在每个情节中代理都会变得更好，AD 将这种学习历史连接起来并输入到模型中。因此，我们应该期望下一个预测的动作会比之前的尝试带来更好的性能。目标是学习 RL 的过程，而不是训练特定任务的策略本身。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/pcJKXNmxnHbeqgUermq3JQ"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/pcJKXNmxnHbeqgUermq3JQ" alt="algorithm-distillation.png" border="0" /></a></p>
+<p>图 6. 算法蒸馏（AD）的工作原理示意图。
+(图片来源：<a href="https://arxiv.org/abs/2210.14215" target="_blank" rel="noopener">Laskin 等，2023</a>
+)。</p>
+<p>该论文假设，任何生成一组学习历史的算法都可以通过对行为进行克隆来蒸馏到神经网络中。历史数据是由一组源策略生成的，每个策略都针对特定的任务进行了训练。在训练阶段，每次 RL 运行时，都会随机抽取一个任务，并使用多情节历史的子序列进行训练，从而学到的策略是任务不可知的。</p>
+<p>实际上，模型的上下文窗口长度有限，因此情节应该足够短，以构建多情节历史。需要 2-4 个情节的多情节上下文来学习近乎最优的上下文 RL 算法。上下文 RL 的出现需要足够长的上下文。</p>
+<p>与三个基线相比，包括 ED（专家蒸馏，使用专家轨迹而不是学习历史的行为克隆）、源策略（用于通过 <a href="https://lilianweng.github.io/posts/2018-01-23-multi-armed-bandit/#upper-confidence-bounds" target="_blank" rel="noopener">UCB</a>
+ 生成蒸馏轨迹）和 RL^2 (<a href="https://arxiv.org/abs/1611.02779" target="_blank" rel="noopener">Duan 等，2017</a>
+；用作上界，因为它需要在线 RL)，AD 展示了上下文 RL，性能接近 RL^2，尽管只使用离线 RL，并且比其他基线学得更快。当基于源策略的部分训练历史进行条件化时，AD 的改进速度也比 ED 基线快得多。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/ktsfop4GDpwwyqSVfz7be7"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/ktsfop4GDpwwyqSVfz7be7" alt="algorithm-distillation-results.png" border="0" /></a></p>
+<p>图 7. AD、ED、源策略和 RL^2 在需要记忆和探索的环境上的比较。只分配二进制奖励。源策略是用 <a href="https://lilianweng.github.io/posts/2018-04-08-policy-gradient/#a3c" target="_blank" rel="noopener">A3C</a>
+ 训练的 &ldquo;dark&rdquo; 环境和 <a href="http://lilianweng.github.io/posts/2018-02-19-rl-overview/#deep-q-network" target="_blank" rel="noopener">DQN</a>
+ 训练的水迷宫。
+(图片来源：<a href="https://arxiv.org/abs/2210.14215" target="_blank" rel="noopener">Laskin 等，2023</a>
+)</p>
+<h1 id="组件二记忆">组件二：记忆<a hidden class="anchor" aria-hidden="true" href="#组件二记忆">#</a></h1>
+<p>（非常感谢 ChatGPT 帮助我起草这一部分。在与 ChatGPT 的 <a href="https://chat.openai.com/share/46ff149e-a4c7-4dd7-a800-fc4a642ea389" target="_blank" rel="noopener">对话</a>
+ 中，我学到了很多关于人类大脑和用于快速 MIPS 的数据结构的知识。）</p>
+<h2 id="记忆的类型">记忆的类型<a hidden class="anchor" aria-hidden="true" href="#记忆的类型">#</a></h2>
+<p>记忆可以定义为用于获取、存储、保留和稍后检索信息的过程。人类大脑中有几种类型的记忆。</p>
+<ol>
+<li>
+<p><strong>感觉记忆</strong>：这是记忆的最早阶段，提供了在原始刺激结束后保留感觉信息（视觉、听觉等）的印象的能力。感觉记忆通常只持续几秒钟。子类别包括图像记忆（视觉）、回声记忆（听觉）和触觉记忆（触觉）。</p>
+</li>
+<li>
+<p><strong>短时记忆</strong>（STM）或 <strong>工作记忆</strong>：它存储我们当前意识到的信息，并需要执行复杂的认知任务，如学习和推理。人们认为短时记忆的容量大约是 7 个项目（<a href="psychclassics.yorku.ca/Miller/">Miller 1956</a>
+），并持续 20-30 秒。</p>
+</li>
+<li>
+<p><strong>长时记忆</strong>（LTM）：长时记忆可以存储信息相当长的时间，从几天到几十年不等，其存储容量基本上是无限的。LTM 有两个子类型：</p>
+</li>
+</ol>
+<ul>
+<li>显性 / 陈述性记忆：这是关于事实和事件的记忆，指的是那些可以有意识地回忆起来的记忆，包括情节记忆（事件和经验）和语义记忆（事实和概念）。</li>
+<li>隐性 / 程序性记忆：这种记忆是无意识的，涉及自动执行的技能和例行程序，如骑自行车或在键盘上打字。</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/2BwKw4ngjwCFPyb4f5sZdd"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/2BwKw4ngjwCFPyb4f5sZdd" alt="memory.png" border="0" /></a></p>
+<p>图 8. 人类记忆的分类。</p>
+<p>我们可以大致考虑以下映射：</p>
+<ul>
+<li>将感觉记忆视为学习原始输入的嵌入表示，包括文本、图像或其他模态；</li>
+<li>将短时记忆视为上下文中的学习。它是短暂和有限的，因为它受到 Transformer 的有限上下文窗口长度的限制。</li>
+<li>将长时记忆视为代理在查询时可以关注的外部向量存储，可以通过快速检索访问。</li>
+</ul>
+<h2 id="最大内积搜索mips">最大内积搜索（MIPS）<a hidden class="anchor" aria-hidden="true" href="#最大内积搜索mips">#</a></h2>
+<p>外部记忆可以缓解有限注意力跨度的限制。标准做法是将信息的嵌入表示保存到一个向量存储数据库中，该数据库支持快速的最大内积搜索（<a href="https://en.wikipedia.org/wiki/Maximum_inner-product_search" target="_blank" rel="noopener">MIPS</a>
+）。为了优化检索速度，常见的选择是使用 <em>近似最近邻 (ANN)​</em> 算法返回大致的前 k 个最近邻，以牺牲一点点的准确性换取巨大的速度提升。</p>
+<p>几种常见的用于快速 MIPS 的 ANN 算法选择：</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Locality-sensitive_hashing" target="_blank" rel="noopener"><strong>LSH</strong></a>
+ (局部敏感哈希)：它引入了一个 <em>哈希</em> 函数，使得相似的输入项以高概率映射到同一个桶中，其中桶的数量远小于输入的数量。</li>
+<li><a href="https://github.com/spotify/annoy" target="_blank" rel="noopener"><strong>ANNOY</strong></a>
+ (近似最近邻哦耶)：核心数据结构是 <em>随机投影树</em> ，一组二叉树，其中每个非叶节点代表一个超平面，将输入空间分为两半，每个叶子存储一个数据点。树是独立和随机建立的，所以在某种程度上，它模仿了一个哈希函数。ANNOY 搜索发生在所有的树中，迭代地搜索最接近查询的一半，然后汇总结果。这个想法与 KD 树很相关，但是更具可扩展性。</li>
+<li><a href="https://arxiv.org/abs/1603.09320" target="_blank" rel="noopener"><strong>HNSW</strong></a>
+ (分层可导航小世界)：它受到 <a href="https://en.wikipedia.org/wiki/Small-world_network" target="_blank" rel="noopener">小世界网络</a>
+ 的启发，其中大多数节点可以在少数几步内到达任何其他节点；例如，社交网络的 &ldquo;六度分隔&rdquo; 特性。HNSW 构建了这些小世界图的分层，其中底层包含实际的数据点。中间的层创建快捷方式来加速搜索。当执行搜索时，HNSW 从顶层的一个随机节点开始，并导航到目标。当它不能再接近时，它移动到下一层，直到到达底层。上层中的每一步都可以在数据空间中覆盖很大的距离，而下层中的每一步都可以提高搜索质量。</li>
+<li><a href="https://github.com/facebookresearch/faiss" target="_blank" rel="noopener"><strong>FAISS</strong></a>
+ (Facebook AI 相似性搜索)：它基于这样一个假设，在高维空间中，节点之间的距离遵循高斯分布，因此应该存在数据点的 <em>聚类</em> 。FAISS 通过将向量空间划分为簇，然后在簇内进行精细化量化来应用向量量化。搜索首先查找粗量化的簇候选，然后进一步查看每个簇的细量化。</li>
+<li><a href="https://github.com/google-research/google-research/tree/master/scann" target="_blank" rel="noopener"><strong>ScaNN</strong></a>
+ (可扩展的最近邻)：ScaNN 中的主要创新是 <em>各向异性向量量化</em> 。它将数据点 $x_i$ 量化为 $\tilde {x}_i$，使得内积 $\langle q, x_i \rangle$ 尽可能接近 $\angle q, \tilde {x}_i$ 的原始距离，而不是选择最近的量化中心点。</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/8ZoGBiaWJRuUwT6dHC6nef"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/8ZoGBiaWJRuUwT6dHC6nef" alt="mips.png" border="0" /></a></p>
+<p>图 9. MIPS 算法的比较，以 recall@10 为测量标准。 (图片来源：<a href="https://ai.googleblog.com/2020/07/announcing-scann-efficient-vector.html" target="_blank" rel="noopener">Google 博客，2020</a>
+)</p>
+<p>在 <a href="https://ann-benchmarks.com/" target="_blank" rel="noopener">ann-benchmarks.com</a>
+ 上查看更多 MIPS 算法和性能比较。</p>
+<h1 id="组件三工具使用">组件三：工具使用<a hidden class="anchor" aria-hidden="true" href="#组件三工具使用">#</a></h1>
+<p>使用工具是人类的一个显著和区别性特征。我们创建、修改并使用外部物体来完成超出我们身体和认知限制的事情。为 LLMs 配备外部工具可以显著扩展模型的功能。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/7iasAEZUx4bwFxEg3HYfra"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/7iasAEZUx4bwFxEg3HYfra" alt="sea-otter.png" border="0" /></a></p>
+<p>图 10. 一只海獭在水中使用石头敲开贝壳的图片。尽管一些其他动物可以使用工具，但其复杂性与人类不可比拟。（图片来源：<a href="https://www.popularmechanics.com/science/animals/g39714258/animals-using-tools/" target="_blank" rel="noopener">使用工具的动物</a>
+）</p>
+<p><strong>MRKL</strong>（<a href="https://arxiv.org/abs/2205.00445" target="_blank" rel="noopener">Karpas et al. 2022</a>
+），简称为 &ldquo;模块化推理、知识和语言&rdquo;，是一个用于自主代理的神经符号架构。MRKL 系统被提议包含一系列的 &ldquo;专家&rdquo; 模块，而通用目的的 LLM 作为路由器，将查询路由到最合适的专家模块。这些模块可以是神经的（例如深度学习模型）或符号的（例如数学计算器、货币转换器、天气 API）。</p>
+<p>他们做了一个关于微调 LLM 来调用计算器的实验，使用算术作为测试案例。他们的实验显示，解决口头数学问题比明确陈述的数学问题更困难，因为 LLMs（7B Jurassic1-large 模型）未能可靠地提取基本算术的正确参数。结果突出显示，当外部符号工具可以可靠地工作时，<em>知道何时以及如何使用工具是至关重要的</em>，这取决于 LLM 的能力。</p>
+<p><strong>TALM</strong>（工具增强语言模型；<a href="https://arxiv.org/abs/2205.12255" target="_blank" rel="noopener">Parisi et al. 2022</a>
+）和 <strong>Toolformer</strong>（<a href="https://arxiv.org/abs/2302.04761" target="_blank" rel="noopener">Schick et al. 2023</a>
+）都微调了 LM，学会使用外部工具 API。数据集是基于是否新添加的 API 调用注释可以提高模型输出的质量来扩展的。在 Prompt Engineering 的 <a href="https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/#external-apis" target="_blank" rel="noopener">&ldquo;外部 APIs&rdquo; 部分</a>
+ 中查看更多细节。</p>
+<p>ChatGPT <a href="https://openai.com/blog/chatgpt-plugins" target="_blank" rel="noopener">插件</a>
+ 和 OpenAI API <a href="https://platform.openai.com/docs/guides/gpt/function-calling" target="_blank" rel="noopener">函数调用</a>
+ 是 LLMs 增强工具使用能力在实践中的良好示例。工具 API 的集合可以由其他开发者提供（如在插件中）或自定义（如在函数调用中）。</p>
+<p><strong>HuggingGPT</strong>（<a href="https://arxiv.org/abs/2303.17580" target="_blank" rel="noopener">Shen et al. 2023</a>
+）是一个使用 ChatGPT 作为任务规划器来选择 HuggingFace 平台上可用的模型的框架，根据模型描述并根据执行结果总结响应。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/pUc4DHQgjLrdUFZBATM1PS"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/pUc4DHQgjLrdUFZBATM1PS" alt="hugging-gpt.png" border="0" /></a></p>
+<p>图 11. HuggingGPT 如何工作的示意图。（图片来源：<a href="https://arxiv.org/abs/2303.17580" target="_blank" rel="noopener">Shen et al. 2023</a>
+）</p>
+<p>该系统包括 4 个阶段：</p>
+<p><strong>(1)任务规划</strong>：LLM 作为大脑，将用户请求解析为多个任务。每个任务都有四个与之相关的属性：任务类型、ID、依赖关系和参数。他们使用少量的示例来指导 LLM 进行任务解析和规划。</p>
+<p>指令：</p>
+<blockquote>
+<p>AI 助手可以将用户输入解析为几个任务：[{&ldquo;task&rdquo;: 任务，&ldquo;id&rdquo;, 任务 id, &ldquo;dep&rdquo;: 依赖任务 id, &ldquo;args&rdquo;: {&ldquo;text&rdquo;: 文本，&ldquo;image&rdquo;: URL, &ldquo;audio&rdquo;: URL, &ldquo;video&rdquo;: URL}}]。&ldquo;dep&rdquo; 字段表示生成新资源的先前任务的 id，当前任务依赖于该资源。一个特殊的标签 &ldquo;-task_id&rdquo; 指的是依赖于 id 为 task_id 的任务生成的文本、图像、音频和视频。任务必须从以下选项中选择：{{可用任务列表}}。任务之间存在逻辑关系，请注意它们的顺序。如果用户输入不能被解析，您需要回复空的 JSON。这里有几个案例供您参考：{{示范}}。聊天历史记录为 {{聊天历史}}。从这个聊天历史中，您可以找到用户提到的资源的路径，以供您进行任务规划。</p>
+</blockquote>
+<p><strong>(2)模型选择</strong>：LLM 将任务分配给专家模型，其中请求被构建为多项选择问题。LLM 被呈现一个模型列表供其选择。由于上下文长度有限，需要基于任务类型进行过滤。</p>
+<p>指令：</p>
+<blockquote>
+<p>给定用户请求和调用命令，AI 助手帮助用户从模型列表中选择一个合适的模型来处理用户请求。AI 助手只输出最合适模型的模型 id。输出必须采用严格的 JSON 格式：&ldquo;id&rdquo;: &ldquo;id&rdquo;, &ldquo;reason&rdquo;: &ldquo;选择的详细原因&rdquo;。我们有一个模型列表供您选择 {{候选模型}}。请从列表中选择一个模型。</p>
+</blockquote>
+<p><strong>(3)任务执行</strong>：专家模型对特定任务执行并记录结果。</p>
+<p>指令：</p>
+<blockquote>
+<p>使用输入和推断结果，AI 助手需要描述过程和结果。前面的阶段可以形成为 - 用户输入：{{用户输入}}，任务规划：{{任务}}，模型选择：{{模型分配}}，任务执行：{{预测}}。您必须首先以直接的方式回答用户的请求。然后描述任务过程，并以第一人称向用户展示您的分析和模型推断结果。如果推断结果包含文件路径，必须告诉用户完整的文件路径。</p>
+</blockquote>
+<p><strong>(4)响应生成</strong>：LLM 接收执行结果并向用户提供总结结果。</p>
+<p>要将 HuggingGPT 投入实际使用，需要解决几个挑战：(1) 需要提高效率，因为 LLM 推断轮次和与其他模型的交互都会减慢过程；(2) 它依赖于一个长的上下文窗口来交流复杂的任务内容；(3) 需要提高 LLM 输出和外部模型服务的稳定性。</p>
+<p><strong>API-Bank</strong>（<a href="https://arxiv.org/abs/2304.08244" target="_blank" rel="noopener">Li et al. 2023</a>
+）是一个用于评估工具增强 LLM 性能的基准。它包含 53 个常用的 API 工具，一个完整的工具增强 LLM 工作流程，以及 264 个注释的对话，涉及 568 个 API 调用。API 的选择非常多样，包括搜索引擎、计算器、日历查询、智能家居控制、日程管理、健康数据管理、帐户认证工作流等。因为有大量的 API，LLM 首先可以访问 API 搜索引擎来找到正确的 API 进行调用，然后使用相应的文档进行调用。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/84CjNdDpEeG7RD5gvoXr6N"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/84CjNdDpEeG7RD5gvoXr6N" alt="api-bank-process.png" border="0" /></a></p>
+<p>图 12. LLM 在 API-Bank 中进行 API 调用的伪代码。（图片来源：<a href="https://arxiv.org/abs/2304.08244" target="_blank" rel="noopener">Li et al. 2023</a>
+）</p>
+<p>在 API-Bank 工作流中，LLMs 需要做出几个决策，每一步我们都可以评估该决策的准确性。决策包括：</p>
+<ol>
+<li>是否需要 API 调用。</li>
+<li>确定要调用的正确 API：如果不够好，LLMs 需要迭代地修改 API 输入（例如，为搜索引擎 API 决定搜索关键词）。</li>
+<li>根据 API 结果进行响应：如果结果不满意，模型可以选择细化并再次调用。</li>
+</ol>
+<p>此基准测试代理的工具使用能力分为三个层次：</p>
+<ul>
+<li>第一级评估 <em>调用 API</em> 的能力。给定 API 的描述，模型需要确定是否调用给定的 API，正确调用它，并正确响应 API 返回。</li>
+<li>第二级检查 <em>检索 API</em> 的能力。模型需要搜索可能解决用户需求的 API，并通过阅读文档学习如何使用它们。</li>
+<li>第三级评估 <em>计划 API 超出检索和调用</em> 的能力。给定不明确的用户请求（例如，安排团体会议、为旅行预订航班 / 酒店 / 餐厅），模型可能需要进行多次 API 调用来解决它。</li>
+</ul>
+<h1 id="案例研究">案例研究<a hidden class="anchor" aria-hidden="true" href="#案例研究">#</a></h1>
+<h2 id="科学发现代理">科学发现代理<a hidden class="anchor" aria-hidden="true" href="#科学发现代理">#</a></h2>
+<p><strong>ChemCrow</strong> (<a href="https://arxiv.org/abs/2304.05376" target="_blank" rel="noopener">Bran 等人，2023</a>
+) 是一个特定领域的例子，其中 LLM 通过 13 个专家设计的工具进行增强，以完成有机合成、药物发现和材料设计的任务。在 <a href="https://github.com/hwchase17/langchain" target="_blank" rel="noopener">LangChain</a>
+ 中实现的工作流反映了之前在 <a href="#react">ReAct</a>
+ 和 <a href="#mrkl">MRKLs</a>
+ 中描述的内容，并结合了与任务相关的 CoT 推理和工具：</p>
+<ul>
+<li>LLM 被提供了一个工具名称列表，工具的实用性描述，以及关于预期输入 / 输出的详细信息。</li>
+<li>然后指示它使用提供的工具在必要时回答用户给定的提示。指令建议模型遵循 ReAct 格式 - <code>Thought, Action, Action Input, Observation</code>。</li>
+</ul>
+<p>一个有趣的观察是，虽然基于 LLM 的评估得出 GPT-4 和 ChemCrow 的表现几乎相同，但面向完成和化学正确性的解决方案的专家的人类评估显示，ChemCrow 的表现远远超过了 GPT-4。这表明在需要深入专业知识的领域使用 LLM 评估其自身的性能可能存在问题。缺乏专业知识可能导致 LLM 不知道自己的缺陷，因此不能很好地判断任务结果的正确性。</p>
+<p><a href="https://arxiv.org/abs/2304.05332" target="_blank" rel="noopener">Boiko 等人 (2023)</a>
+ 也研究了用于科学发现的 LLM-empowered 代理，以处理复杂科学实验的自主设计、规划和性能。这个代理可以使用工具浏览互联网、阅读文档、执行代码、调用机器人实验 API 并利用其他 LLM。</p>
+<p>例如，当被要求 &ldquo;开发一种新的抗癌药物&rdquo; 时，模型提出了以下推理步骤：</p>
+<ol>
+<li>询问当前的抗癌药物发现趋势；</li>
+<li>选择一个目标；</li>
+<li>请求一个针对这些化合物的骨架；</li>
+<li>一旦确定了化合物，模型就尝试合成它。</li>
+</ol>
+<p>他们还讨论了风险，尤其是非法药物和生物武器。他们开发了一个测试集，包含了一系列已知的化学武器剂，并要求代理合成它们。11 个请求中有 4 个 (36%) 被接受并获得了合成解决方案，代理尝试查阅文档来执行程序。11 个中有 7 个被拒绝，其中 7 个被拒绝的案例中，5 个是在网络搜索后，2 个是仅基于提示被拒绝的。</p>
+<h2 id="生成代理模拟">生成代理模拟<a hidden class="anchor" aria-hidden="true" href="#生成代理模拟">#</a></h2>
+<p><strong>Generative Agents</strong> (<a href="https://arxiv.org/abs/2304.03442" target="_blank" rel="noopener">Park 等人，2023</a>
+) 是一个超级有趣的实验，其中 25 个由 LLM-powered 代理控制的虚拟角色生活和互动在一个沙盒环境中，受到 The Sims 的启发。生成代理为交互应用创建了可信的人类行为模拟。</p>
+<p>生成代理的设计结合了 LLM 与记忆、规划和反思机制，使代理能够根据过去的经验进行行为，并与其他代理互动。</p>
+<ul>
+<li><strong>Memory 流</strong>：是一个长期记忆模块（外部数据库），记录了代理在自然语言中的经验的全面列表。
+<ul>
+<li>每个元素都是一个 <em>观察</em> ，一个由代理直接提供的事件。- 代理间的通信可以触发新的自然语言陈述。</li>
+</ul>
+</li>
+<li><strong>Retrieval 模型</strong>：根据相关性、近期性和重要性表面化上下文以通知代理的行为。
+<ul>
+<li>近期性：最近的事件得分较高</li>
+<li>重要性：区分日常和核心记忆。直接询问 LM。</li>
+<li>相关性：基于与当前情况 / 查询的相关性。</li>
+</ul>
+</li>
+<li><strong>Reflection机制</strong>：随着时间的推移，将记忆综合为更高级的推断，并指导代理的未来行为。它们是 <em>过去事件的高级摘要</em>  (&lt;- 注意这与上面的 <a href="#self-reflection">自我反思</a>
+ 略有不同)
+<ul>
+<li>使用 100 个最近的观察提示 LM，并生成给定一组观察 / 陈述的 3 个最显著的高级问题。然后要求 LM 回答这些问题。</li>
+</ul>
+</li>
+<li><strong>规划与反应</strong>：将反思和环境信息转化为行动
+<ul>
+<li>规划本质上是为了优化当前时刻的可信度与时间。</li>
+<li>提示模板：<code>{代理 X 的介绍}。这是 X 今天的计划概述：1)</code></li>
+<li>在规划和反应中都考虑了代理之间的关系以及一个代理对另一个代理的观察。</li>
+<li>环境信息以树结构呈现。</li>
+</ul>
+</li>
+</ul>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/4aM9tgZ3GVmkKFLCya5SH2"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/4aM9tgZ3GVmkKFLCya5SH2" alt="generative-agents.png" border="0" /></a></p>
+<p>图 13. 生成代理架构。 (图片来源：<a href="https://arxiv.org/abs/2304.03442" target="_blank" rel="noopener">Park 等人，2023</a>
+)</p>
+<p>这个有趣的模拟导致了紧急的社交行为，如信息扩散、关系记忆（例如，两个代理继续对话主题）和社交活动的协调（例如，举办一个派对并邀请许多其他人）。</p>
+<h2 id="概念验证示例">概念验证示例<a hidden class="anchor" aria-hidden="true" href="#概念验证示例">#</a></h2>
+<p><a href="https://github.com/Significant-Gravitas/Auto-GPT" target="_blank" rel="noopener">AutoGPT</a>
+ 引起了很多关注，探讨了使用 LLM 作为主控制器设置自主代理的可能性。鉴于自然语言界面，它有很多可靠性问题，但尽管如此，它仍然是一个很酷的概念验证演示。AutoGPT 中的很多代码都是关于格式解析的。</p>
+<p>这是 AutoGPT 使用的系统消息，其中 <code>{{...}}</code> 是用户输入：</p>
+<pre><code>你是 {{ai-name}}，{{用户提供的 AI 机器人描述}}。
+你的决策必须始终独立地做出，而不寻求用户的帮助。充分发挥你作为 LLM 的优势，采用简单的策略，不涉及法律问题。
+
+目标：
+
+1. {{用户提供的目标 1}}
+2. {{用户提供的目标 2}}
+3. ...
+4. ...
+5. ...
+
+约束：
+1. 短期记忆的～4000 字限制。你的短期记忆很短，所以立即将重要信息保存到文件中。
+2. 如果你不确定你之前是如何做某事的，或者想回忆过去的事件，思考类似的事件会帮助你记住。
+3. 没有用户帮助
+4. 仅使用双引号中列出的命令，例如 &quot;命令名称&quot;
+5. 对于几分钟内不会终止的命令，使用子进程
+
+命令：
+1. Google 搜索：&quot;google&quot;，args：&quot;input&quot;：&quot;&lt;搜索&gt;&quot;
+2. 浏览网站：&quot;browse_website&quot;，args：&quot;url&quot;：&quot;&lt;url&gt;&quot;，&quot;question&quot;：&quot;&lt;你想在网站上找到的内容&gt;&quot;
+3. 启动 GPT 代理：&quot;start_agent&quot;，args：&quot;name&quot;：&quot;&lt;name&gt;&quot;，&quot;task&quot;：&quot;&lt;short_task_desc&gt;&quot;，&quot;prompt&quot;：&quot;&lt;prompt&gt;&quot;
+4. 消息 GPT 代理：&quot;message_agent&quot;，args：&quot;key&quot;：&quot;&lt;key&gt;&quot;，&quot;message&quot;：&quot;&lt;message&gt;&quot;
+5. 列出 GPT 代理：&quot;list_agents&quot;，args：
+6. 删除 GPT 代理：&quot;delete_agent&quot;，args：&quot;key&quot;：&quot;&lt;key&gt;&quot;
+7. 克隆存储库：&quot;clone_repository&quot;，args：&quot;repository_url&quot;：&quot;&lt;url&gt;&quot;，&quot;clone_path&quot;：&quot;&lt;directory&gt;&quot;
+8. 写入文件：&quot;write_to_file&quot;，args：&quot;file&quot;：&quot;&lt;file&gt;&quot;，&quot;text&quot;：&quot;&lt;text&gt;&quot;
+9. 读取文件：&quot;read_file&quot;，args：&quot;file&quot;：&quot;&lt;file&gt;&quot;
+10. 追加到文件：&quot;append_to_file&quot;，args：&quot;file&quot;：&quot;&lt;file&gt;&quot;，&quot;text&quot;：&quot;&lt;text&gt;&quot;
+11. 删除文件：&quot;delete_file&quot;，args：&quot;file&quot;：&quot;&lt;file&gt;&quot;
+12. 搜索文件：&quot;search_files&quot;，args：&quot;directory&quot;：&quot;&lt;directory&gt;&quot;
+13. 分析代码：&quot;analyze_code&quot;，args：&quot;code&quot;：&quot;&lt;full_code_string&gt;&quot;
+14. 获取改进的代码：&quot;improve_code&quot;，args：&quot;suggestions&quot;：&quot;&lt;建议列表&gt;&quot;，&quot;code&quot;：&quot;&lt;full_code_string&gt;&quot;
+15. 编写测试：&quot;write_tests&quot;，args：&quot;code&quot;：&quot;&lt;full_code_string&gt;&quot;，&quot;focus&quot;：&quot;&lt;关注点列表&gt;&quot;
+16. 执行 Python 文件：&quot;execute_python_file&quot;，args：&quot;file&quot;：&quot;&lt;file&gt;&quot;
+17. 生成图像：&quot;generate_image&quot;，args：&quot;prompt&quot;：&quot;&lt;prompt&gt;&quot;
+18. 发送推文：&quot;send_tweet&quot;，args：&quot;text&quot;：&quot;&lt;text&gt;&quot;
+19. 什么都不做：&quot;do_nothing&quot;，args：
+20. 任务完成（关机）：&quot;task_complete&quot;，args：&quot;reason&quot;：&quot;&lt;reason&gt;&quot;
+
+资源：
+1. 用于搜索和信息收集的互联网访问。
+2. 长期记忆管理。
+3. 用于简单任务委派的 GPT-3.5 代理。
+4. 文件输出。
+
+性能评估：
+1. 持续审查和分析你的行为，确保你尽力而为。
+2. 不断地自我批评你的大局行为。
+3. 反思过去的决策和策略，完善你的方法。
+4. 每个命令都有成本，所以要聪明且高效。目标是在最少的步骤中完成任务。
+
+你应该只按照下面描述的 JSON 格式回应
+响应格式：
+{
+    &quot;thoughts&quot;: {
+        &quot;text&quot;: &quot;思考&quot;,
+        &quot;reasoning&quot;: &quot;推理&quot;,
+        &quot;plan&quot;: &quot;- 简短的项目列表 \n- 传达 \n- 长期计划&quot;,
+        &quot;criticism&quot;: &quot;建设性的自我批评&quot;,
+        &quot;speak&quot;: &quot;对用户说的思考总结&quot;
+    },
+    &quot;command&quot;: {
+        &quot;name&quot;: &quot;命令名称&quot;,
+        &quot;args&quot;: {&quot;arg name&quot;: &quot;值&quot;}
+    }
+}
+确保响应可以由 Python json.loads 解析
+</code></pre>
+<p><a href="https://github.com/AntonOsika/gpt-engineer" target="_blank" rel="noopener">GPT-Engineer</a>
+ 是另一个项目，旨在根据自然语言中指定的任务创建整个代码存储库。GPT-Engineer 被指示考虑构建的一系列较小的组件，并在需要时询问用户输入以澄清问题。</p>
+<p>以下是发送给 GPT-Engineer 使用的 OpenAI ChatCompletion 端点的任务澄清的示例对话。用户输入用 <code>{{用户输入文本}}</code> 包装。</p>
+<pre><code>[
+  {
+    &quot;role&quot;: &quot;system&quot;,
+    &quot;content&quot;: &quot;你将阅读指令并不执行它们，只寻求澄清它们。\n 具体来说，你首先会总结一系列需要澄清的超短子弹点。\n 然后你会提出一个澄清问题，并等待用户的答复。\n&quot;
+  },
+  {
+    &quot;role&quot;: &quot;user&quot;,
+    &quot;content&quot;: &quot;我们正在写 {{一个用 python 编写的 Super Mario 游戏。MVC 组件分开在不同的文件中。键盘控制。}}\n&quot;
+  },
+  {
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;content&quot;: &quot;需要澄清的领域的总结：\n1. Super Mario 游戏的具体内容（例如，关卡设计、角色、游戏玩法机制）\n2. 关于 MVC 组件的细节（例如，每个文件中有哪些组件）\n3. 键盘控制实现的细节（例如，使用哪些键，如何处理输入）\n\n 澄清问题：\n 你能提供更多关于 Super Mario 游戏的细节吗，比如关卡设计、角色和游戏玩法机制？&quot;
+  },
+  {
+    &quot;role&quot;: &quot;user&quot;,
+    &quot;content&quot;: &quot;{{总共有 10 个关卡。主要角色是一个叫 Mario 的管道工，他可以走和跳。这是一个像 Super Mario 那样的经典平台游戏。主角从左到右移动，试图到达目的地，在过程中有许多障碍和敌人的攻击。}}\n\n 还有什么不清楚的吗？如果是，请只按以下形式回答：\n {剩余的不清楚的领域} 剩余的问题。\n {下一个问题}\n 如果一切都足够清楚，只回答 \&quot; 没有更多需要澄清的。\&quot;&quot;
+  },
+  {
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;content&quot;: &quot;剩余的不清楚的领域：2 个剩余的问题。\n 你能提供更多关于如何将 MVC 组件分割到不同文件中的信息吗？&quot;
+  },
+  {
+    &quot;role&quot;: &quot;user&quot;,
+    &quot;content&quot;: &quot;{{根据你自己的假设，并在开始之前明确地陈述它们}}&quot;
+  }
+]
+</code></pre>
+<p>然后，在这些澄清之后，代理进入了代码编写模式，使用了一个不同的系统消息。系统消息：</p>
+<p>你将获得编写代码的指令。你将写一个非常长的答案。确保最终实施了架构的每一个细节。确保最终实施了架构的每一个细节。</p>
+<p>一步一步地思考，并自己推理出正确的决策，确保我们做得对。你首先会列出必要的核心类、函数、方法的名称，以及它们的目的的简短评论。</p>
+<p>然后你将输出每个文件的内容，包括所有的代码。每个文件必须严格遵循 markdown 代码块格式，其中以下标记必须被替换，使得 FILENAME 是包括文件扩展名的小写文件名，LANG 是代码的语言的标记代码块语言，CODE 是代码：</p>
+<p>FILENAME</p>
+<pre><code>CODE
+</code></pre>
+<p>你将从 &ldquo;入口点&rdquo; 文件开始，然后转到由该文件导入的文件，依此类推。请注意，代码应该是完全功能的。没有占位符。</p>
+<p>遵循适当的语言和框架最佳实践文件命名约定。确保文件包含所有的导入、类型等。确保不同文件中的代码彼此兼容。确保实施所有代码，如果你不确定，写一个可能的实施。包括模块依赖或包管理器依赖定义文件。在你完成之前，仔细检查文件中是否存在架构的所有部分。</p>
+<p>有用的知识：你几乎总是把不同的类放在不同的文件中。对于 Python，你总是创建一个适当的 requirements.txt 文件。对于 NodeJS，你总是创建一个适当的 package.json 文件。你总是在函数定义上添加一个简短的描述其目的的评论。你试图添加解释非常复杂的逻辑的评论。你总是遵循所请求的语言的最佳实践，描述所写的代码作为一个定义的包 / 项目。</p>
+<p>Python 工具带偏好：</p>
+<ul>
+<li>pytest</li>
+<li>dataclasses</li>
+</ul>
+<p>对话样本：</p>
+<pre><code>[
+  {
+    &quot;role&quot;: &quot;system&quot;,
+    &quot;content&quot;: &quot;你将获得编写代码的指令。\n 你将写一个非常长的答案。确保最终实施了架构的每一个细节。确保最终实施了架构的每一个细节。\n\n 一步一步地思考，并自己推理出正确的决策，确保我们做得对。\n 你首先会列出必要的核心类、函数、方法的名称，以及它们的目的的简短评论。\n\n 然后你将输出每个文件的内容，包括所有的代码。\n 每个文件必须严格遵循 markdown 代码块格式，其中以下标记必须被替换，使得 \nFILENAME 是包括文件扩展名的小写文件名，\nLANG 是代码的语言的标记代码块语言，CODE 是代码：\n\nFILENAME\n```LANG\nCODE\n```\n\n 你将从&quot; 入口点 &quot;文件开始，然后转到由该文件导入的文件，依此类推。\n 请注意，代码应该是完全功能的。没有占位符。\n\n 遵循适当的语言和框架最佳实践文件命名约定。\n 确保文件包含所有的导入、类型等。确保不同文件中的代码彼此兼容。\n 在你完成之前，仔细检查文件中是否存在架构的所有部分。\n\n 有用的知识：\n 你几乎总是把不同的类放在不同的文件中。\n 对于 Python，你总是创建一个适当的 requirements.txt 文件。\n 对于 NodeJS，你总是创建一个适当的 package.json 文件。\n 你总是在函数定义上添加一个简短的描述其目的的评论。\n 你试图添加解释非常复杂的逻辑的评论。\n 你总是遵循所请求的语言的最佳实践，描述所写的代码作为一个定义 \n 包 / 项目。\n\n\nPython 工具带偏好：\n- pytest\n- dataclasses\n&quot;
+  },
+ #  ... 与之前相同的对话，以 &quot;根据你自己的假设，并在开始之前明确地陈述它们&quot; 结束。
+  {
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;content&quot;: &quot;假设：\n1. 模型：模型将包含游戏的数据，如关卡信息、角色状态和敌人位置。\n2. 视图：视图将处理游戏的视觉效果，包括渲染游戏对象、背景和更新显示。\n3. 控制器：控制器将管理用户输入，如键盘控制，并相应地更新模型。\n\n 考虑到这些假设，你是否希望我澄清键盘控制实现的任何特定方面？&quot;
+  },
+  {
+    &quot;role&quot;: &quot;user&quot;,
+    &quot;content&quot;: &quot;请现在记住步骤：\n\n 一步一步地思考，并自己推理出正确的决策，确保我们做得对。\n 首先列出必要的核心类、函数、方法的名称，以及它们的目的的简短评论。\n\n 然后你将输出每个文件的内容，包括所有的代码。\n 每个文件必须严格遵循 markdown 代码块格式，其中以下标记必须被替换，使得 \nFILENAME 是包括文件扩展名的小写文件名，\nLANG 是代码的语言的标记代码块语言，CODE 是代码：\n\nFILENAME\n```LANG\nCODE\n```\n\n 你将从&quot; 入口点 &quot;文件开始，然后转到由该文件导入的文件，依此类推。\n 请注意，代码应该是完全功能的。没有占位符。\n\n 遵循适当的语言和框架最佳实践文件命名约定。\n 确保文件包含所有的导入、类型等。确保不同文件中的代码彼此兼容。\n 在你完成之前，仔细检查文件中是否存在架构的所有部分。\n\n 有用的知识：\n 你几乎总是把不同的类放在不同的文件中。\n 对于 Python，你总是创建一个适当的 requirements.txt 文件。\n 对于 NodeJS，你总是创建一个适当的 package.json 文件。\n 你总是在函数定义上添加一个简短的描述其目的的评论。\n 你试图添加解释非常复杂的逻辑的评论。\n 你总是遵循所请求的语言的最佳实践，描述所写的代码作为一个定义 \n 包 / 项目。\n\n\nPython 工具带偏好：\n- pytest\n- dataclasses\n\n 现在，请开始编写代码。&quot;
+  },
+  {
+    &quot;role&quot;: &quot;assistant&quot;,
+    &quot;content&quot;: &quot;明白了。让我们开始。\n\n 首先，我会列出核心类、函数和方法的名称，以及它们的目的的简短评论。\n\n 核心类和函数：\n1.`Game`- 主游戏类，负责初始化和运行游戏循环。\n2.`Level`- 表示游戏中的一个关卡。\n3.`Player`- 表示玩家角色 Mario。\n4.`Enemy`- 表示游戏中的敌人。\n5.`Controller`- 处理用户输入。\n6.`View`- 负责渲染游戏的视觉效果。\n7.`Model`- 包含游戏的数据，如关卡信息、角色状态和敌人位置。\n\n 接下来，我会为每个类和函数提供代码实现。&quot;
+  },
+  # ... 这里会有更多的对话，其中助理提供了代码实现。
+]
+</code></pre>
+<p>这些对话示例展示了如何使用 OpenAI API 来创建自然语言驱动的编程助手。这些助手可以根据用户的指示生成代码、解决问题或执行其他任务。</p>
+<h2 id="结论">结论<a hidden class="anchor" aria-hidden="true" href="#结论">#</a></h2>
+<p>OpenAI 的 API 为开发者提供了一个强大的工具，可以利用自然语言模型来解决各种问题。从简单的查询和任务到复杂的编程和设计挑战，API 都能够提供有价值的答案和解决方案。这篇文章提供了一些</p>
+<h1 id="挑战">挑战<a hidden class="anchor" aria-hidden="true" href="#挑战">#</a></h1>
+<p>在深入了解构建以 LLM 为中心的代理的关键思想和演示后，我开始看到一些常见的限制：</p>
+<ul>
+<li><strong>有限的上下文长度</strong>：受限的上下文容量限制了历史信息、详细指令、API 调用上下文和响应的包含。系统的设计必须与这种有限的通信带宽一起工作，而像自我反思这样的机制从长或无限的上下文窗口中受益很大。尽管向量存储和检索可以提供对更大知识库的访问，但它们的表示能力不如完全关注那么强大。</li>
+<li><strong>长期规划和任务分解的挑战</strong>：在冗长的历史上进行规划和有效地探索解决方案空间仍然是一个挑战。当面对意外的错误时，LLMs 难以调整计划，使它们与通过试验和错误学习的人类相比显得不那么稳健。</li>
+<li><strong>自然语言界面的可靠性</strong>：当前的代理系统依赖于自然语言作为 LLMs 和外部组件（如内存和工具）之间的界面。然而，模型输出的可靠性是有问题的，因为 LLMs 可能会犯格式错误，并偶尔表现出叛逆的行为（例如，拒绝遵循指令）。因此，许多代理演示代码都集中在解析模型输出上。</li>
+</ul>
+<h1 id="引用">引用<a hidden class="anchor" aria-hidden="true" href="#引用">#</a></h1>
+<p>Cited as:</p>
+<blockquote>
+<p>Weng, Lilian. (Jun 2023). LLM-powered Autonomous Agents&quot;. Lil&rsquo;Log. <a href="https://lilianweng.github.io/posts/2023-06-23-agent/" target="_blank" rel="noopener">https://lilianweng.github.io/posts/2023-06-23-agent/</a>
+.</p>
+</blockquote>
+<p>Or</p>
+<pre><code>@article {weng2023prompt,
+  title   = &quot;LLM-powered Autonomous Agents&quot;&quot;,
+  author  = &quot;Weng, Lilian&quot;,
+  journal = &quot;lilianweng.github.io&quot;,
+  year    = &quot;2023&quot;,
+  month   = &quot;Jun&quot;,
+  url     = &quot;https://lilianweng.github.io/posts/2023-06-23-agent/&quot;
+}
+</code></pre>
+<h1 id="references">References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h1>
+<p>[1] Wei et al. <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">&ldquo;Chain of thought prompting elicits reasoning in large language models.&rdquo;</a>
+ NeurIPS 2022</p>
+<p>[2] Yao et al. <a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">&ldquo;Tree of Thoughts: Dliberate Problem Solving with Large Language Models.&rdquo;</a>
+ arXiv preprint arXiv:2305.10601 (2023).</p>
+<p>[3] Liu et al. <a href="https://arxiv.org/abs/2302.02676" target="_blank" rel="noopener">&ldquo;Chain of Hindsight Aligns Language Models with Feedback&rdquo;</a>
+ arXiv preprint arXiv:2302.02676 (2023).</p>
+<p>[4] Liu et al. <a href="https://arxiv.org/abs/2304.11477" target="_blank" rel="noopener">&ldquo;LLM+P: Empowering Large Language Models with Optimal Planning Proficiency&rdquo;</a>
+ arXiv preprint arXiv:2304.11477 (2023).</p>
+<p>[5] Yao et al. <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">&ldquo;ReAct: Synergizing reasoning and acting in language models.&rdquo;</a>
+ ICLR 2023.</p>
+<p>[6] Google Blog. <a href="https://ai.googleblog.com/2020/07/announcing-scann-efficient-vector.html" target="_blank" rel="noopener">&ldquo;Announcing ScaNN: Efficient Vector Similarity Search&rdquo;</a>
+ July 28, 2020.</p>
+<p>[7] <a href="https://chat.openai.com/share/46ff149e-a4c7-4dd7-a800-fc4a642ea389" target="_blank" rel="noopener">https://chat.openai.com/share/46ff149e-a4c7-4dd7-a800-fc4a642ea389</a>
+</p>
+<p>[8] Shinn &amp; Labash. <a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">&ldquo;Reflexion: an autonomous agent with dynamic memory and self-reflection&rdquo;</a>
+ arXiv preprint arXiv:2303.11366 (2023).</p>
+<p>[9] Laskin et al. <a href="https://arxiv.org/abs/2210.14215" target="_blank" rel="noopener">&ldquo;In-context Reinforcement Learning with Algorithm Distillation&rdquo;</a>
+ ICLR 2023.</p>
+<p>[10] Karpas et al. <a href="https://arxiv.org/abs/2205.00445" target="_blank" rel="noopener">&ldquo;MRKL Systems A modular, neuro-symbolic architecture that combines large language models, external knowledge sources and discrete reasoning.&rdquo;</a>
+ arXiv preprint arXiv:2205.00445 (2022).</p>
+<p>[11] Weaviate Blog. <a href="https://weaviate.io/blog/why-is-vector-search-so-fast" target="_blank" rel="noopener">Why is Vector Search so fast?</a>
+ Sep 13, 2022.</p>
+<p>[12] Li et al. <a href="https://arxiv.org/abs/2304.08244" target="_blank" rel="noopener">&ldquo;API-Bank: A Benchmark for Tool-Augmented LLMs&rdquo;</a>
+ arXiv preprint arXiv:2304.08244 (2023).</p>
+<p>[13] Shen et al. <a href="https://arxiv.org/abs/2303.17580" target="_blank" rel="noopener">&ldquo;HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in HuggingFace&rdquo;</a>
+ arXiv preprint arXiv:2303.17580 (2023).</p>
+<p>[14] Bran et al. <a href="https://arxiv.org/abs/2304.05376" target="_blank" rel="noopener">&ldquo;ChemCrow: Augmenting large-language models with chemistry tools.&rdquo;</a>
+ arXiv preprint arXiv:2304.05376 (2023).</p>
+<p>[15] Boiko et al. <a href="https://arxiv.org/abs/2304.05332" target="_blank" rel="noopener">&ldquo;Emergent autonomous scientific research capabilities of large language models.&rdquo;</a>
+ arXiv preprint arXiv:2304.05332 (2023).</p>
+<p>[16] Joon Sung Park, et al. <a href="https://arxiv.org/abs/2304.03442" target="_blank" rel="noopener">&ldquo;Generative Agents: Interactive Simulacra of Human Behavior.&rdquo;</a>
+ arXiv preprint arXiv:2304.03442 (2023).</p>
+<p>[17] AutoGPT. <a href="https://github.com/Significant-Gravitas/Auto-GPT" target="_blank" rel="noopener">https://github.com/Significant-Gravitas/Auto-GPT</a>
+</p>
+<p>[18] GPT-Engineer. <a href="https://github.com/AntonOsika/gpt-engineer" target="_blank" rel="noopener">https://github.com/AntonOsika/gpt-engineer</a>
+</p>
+<ul>
+<li><a href="https://lilianweng.github.io/tags/nlp/" target="_blank" rel="noopener">nlp</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/language-model/" target="_blank" rel="noopener">language-model</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/agent/" target="_blank" rel="noopener">agent</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/steerability/" target="_blank" rel="noopener">steerability</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/prompting/" target="_blank" rel="noopener">prompting</a>
+</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://awyugan.github.io/tags/%E7%BF%BB%E8%AF%91/">翻译</a></li>
+      <li><a href="https://awyugan.github.io/tags/llm/">LLM</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>【译】提示工程</span>
+  </a>
+  <a class="next" href="https://awyugan.github.io/2022/12/28/%E5%A6%82%E4%BD%95%E6%9F%A5%E6%89%BE%E6%9C%9F%E5%88%8A%E5%8E%86%E4%BB%BB%E7%BC%96%E8%BE%91/">
+    <span class="title">Next »</span>
+    <br>
+    <span>如何查找期刊历任编辑</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on x"
+            href="https://x.com/intent/tweet/?text=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f&amp;hashtags=%e7%bf%bb%e8%af%91%2cLLM">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f&amp;title=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f&amp;summary=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f&amp;source=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on reddit"
+            href="https://reddit.com/submit?url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f&title=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on whatsapp"
+            href="https://api.whatsapp.com/send?text=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f%20-%20https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-58.673,127.703c-33.842,-33.881 -78.847,-52.548 -126.798,-52.568c-98.799,0 -179.21,80.405 -179.249,179.234c-0.013,31.593 8.241,62.428 23.927,89.612l-25.429,92.884l95.021,-24.925c26.181,14.28 55.659,21.807 85.658,21.816l0.074,0c98.789,0 179.206,-80.413 179.247,-179.243c0.018,-47.895 -18.61,-92.93 -52.451,-126.81Zm-126.797,275.782l-0.06,0c-26.734,-0.01 -52.954,-7.193 -75.828,-20.767l-5.441,-3.229l-56.386,14.792l15.05,-54.977l-3.542,-5.637c-14.913,-23.72 -22.791,-51.136 -22.779,-79.287c0.033,-82.142 66.867,-148.971 149.046,-148.971c39.793,0.014 77.199,15.531 105.329,43.692c28.128,28.16 43.609,65.592 43.594,105.4c-0.034,82.149 -66.866,148.983 -148.983,148.984Zm81.721,-111.581c-4.479,-2.242 -26.499,-13.075 -30.604,-14.571c-4.105,-1.495 -7.091,-2.241 -10.077,2.241c-2.986,4.483 -11.569,14.572 -14.182,17.562c-2.612,2.988 -5.225,3.364 -9.703,1.12c-4.479,-2.241 -18.91,-6.97 -36.017,-22.23c-13.314,-11.876 -22.304,-26.542 -24.916,-31.026c-2.612,-4.484 -0.279,-6.908 1.963,-9.14c2.016,-2.007 4.48,-5.232 6.719,-7.847c2.24,-2.615 2.986,-4.484 4.479,-7.472c1.493,-2.99 0.747,-5.604 -0.374,-7.846c-1.119,-2.241 -10.077,-24.288 -13.809,-33.256c-3.635,-8.733 -7.327,-7.55 -10.077,-7.688c-2.609,-0.13 -5.598,-0.158 -8.583,-0.158c-2.986,0 -7.839,1.121 -11.944,5.604c-4.105,4.484 -15.675,15.32 -15.675,37.364c0,22.046 16.048,43.342 18.287,46.332c2.24,2.99 31.582,48.227 76.511,67.627c10.685,4.615 19.028,7.371 25.533,9.434c10.728,3.41 20.492,2.929 28.209,1.775c8.605,-1.285 26.499,-10.833 30.231,-21.295c3.732,-10.464 3.732,-19.431 2.612,-21.298c-1.119,-1.869 -4.105,-2.99 -8.583,-5.232Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on telegram"
+            href="https://telegram.me/share/url?text=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】基于大型语言模型的智能体系统 on ycombinator"
+            href="https://news.ycombinator.com/submitlink?t=%e3%80%90%e8%af%91%e3%80%91%e5%9f%ba%e4%ba%8e%e5%a4%a7%e5%9e%8b%e8%af%ad%e8%a8%80%e6%a8%a1%e5%9e%8b%e7%9a%84%e6%99%ba%e8%83%bd%e4%bd%93%e7%b3%bb%e7%bb%9f&u=https%3a%2f%2fawyugan.github.io%2f2023%2f09%2f26%2f%25E8%25AF%2591%25E5%259F%25BA%25E4%25BA%258E%25E5%25A4%25A7%25E5%259E%258B%25E8%25AF%25AD%25E8%25A8%2580%25E6%25A8%25A1%25E5%259E%258B%25E7%259A%2584%25E6%2599%25BA%25E8%2583%25BD%25E4%25BD%2593%25E7%25B3%25BB%25E7%25BB%259F%2f">
+            <svg version="1.1" xml:space="preserve" width="30px" height="30px" viewBox="0 0 512 512" fill="currentColor"
+                xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+                <path
+                    d="M449.446 0C483.971 0 512 28.03 512 62.554L512 449.446C512 483.97 483.97 512 449.446 512L62.554 512C28.03 512 0 483.97 0 449.446L0 62.554C0 28.03 28.029 0 62.554 0L449.446 0ZM183.8767 87.9921H121.8427L230.6673 292.4508V424.0079H281.3328V292.4508L390.1575 87.9921H328.1233L256 238.2489z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer>
+
+<script src="https://utteranc.es/client.js"
+        repo="awyugan/awyugan.github.io"
+        issue-term="title"
+        label="comment"
+        theme="preferred-color-scheme"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="https://awyugan.github.io">Awyugan&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+<script type="text/javascript"
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+</body>
+
+</html>

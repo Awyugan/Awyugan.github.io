@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>language-model on Awyugan&#39;s Blog</title>
+    <link>https://awyugan.github.io/tags/language-model/</link>
+    <description>Recent content in language-model on Awyugan&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Fri, 06 Oct 2023 18:03:40 +0800</lastBuildDate>
+    <atom:link href="https://awyugan.github.io/tags/language-model/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>【译】Large Transformer Model 推理优化 | Lil&#39;Log</title>
+      <link>https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/</link>
+      <pubDate>Fri, 06 Oct 2023 18:03:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/</guid>
+      <description>[January 10, 2023] · 31 min · Lilian Weng 2023-01-24 更新：增加了关于蒸馏 的小节 如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用</description>
+    </item>
+  </channel>
+</rss>

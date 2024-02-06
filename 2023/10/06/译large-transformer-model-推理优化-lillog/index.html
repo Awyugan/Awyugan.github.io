@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>【译】Large Transformer Model 推理优化 | Lil&#39;Log | Awyugan&#39;s Blog</title>
+<meta name="keywords" content="language-model, long-read&#34;, architecture, attention, transformer, foundation">
+<meta name="description" content="[January 10, 2023] · 31 min · Lilian Weng 2023-01-24 更新：增加了关于蒸馏 的小节 如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用">
+<meta name="author" content="
+作者:&nbsp;Lilian Weng">
+<link rel="canonical" href="https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.f609105c87baf33321189c18cb2cb85612ccb41c03a16449e1f731b7aad3e1c4.css" integrity="sha256-9gkQXIe68zMhGJwYyyy4VhLMtBwDoWRJ4fcxt6rT4cQ=" rel="preload stylesheet" as="style">
+
+
+<head>
+  
+  <script type="text/javascript">
+  MathJax = {
+    tex: {
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+    },
+  };
+</script>
+<script
+    async
+    id="MathJax-script"
+    src="https://cdn.jsdelivr.net/npm/mathjax@3.2.0/es5/tex-mml-chtml.js"
+    integrity="sha384-+BSz3oj3ILMYvOBr16U9i0H4RZRmGyQQ+1q9eqr8T3skmAFrJk8GmgwgqlCZdNSo"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+    type="text/javascript"></script>
+</head>
+<link rel="icon" href="https://awyugan.github.io/img/Q.gif">
+<link rel="icon" type="image/png" sizes="16x16" href="https://awyugan.github.io/img/Q.gif">
+<link rel="icon" type="image/png" sizes="32x32" href="https://awyugan.github.io/img/Q.gif">
+<link rel="apple-touch-icon" href="https://awyugan.github.io/Q.gif">
+<link rel="mask-icon" href="https://awyugan.github.io/Q.gif">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<noscript>
+	
+	<style>
+	.img-shadow {
+	    box-shadow: 8px 8px 10px rgba(0, 0, 0, 0.5);  
+	}
+	</style>
+	
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+<script type="text/javascript">
+  MathJax = {
+    tex: {
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+    },
+  };
+</script>
+<script
+    async
+    id="MathJax-script"
+    src="https://cdn.jsdelivr.net/npm/mathjax@3.2.0/es5/tex-mml-chtml.js"
+    integrity="sha384-+BSz3oj3ILMYvOBr16U9i0H4RZRmGyQQ+1q9eqr8T3skmAFrJk8GmgwgqlCZdNSo"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+    type="text/javascript"></script>
+
+>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "$", right: "$", display: false}
+        ]
+    });
+});
+</script>
+<meta property="og:title" content="【译】Large Transformer Model 推理优化 | Lil&#39;Log" />
+<meta property="og:description" content="[January 10, 2023] · 31 min · Lilian Weng 2023-01-24 更新：增加了关于蒸馏 的小节 如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2023-10-06T18:03:40+08:00" />
+<meta property="article:modified_time" content="2023-10-06T18:03:40+08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="【译】Large Transformer Model 推理优化 | Lil&#39;Log"/>
+<meta name="twitter:description" content="[January 10, 2023] · 31 min · Lilian Weng 2023-01-24 更新：增加了关于蒸馏 的小节 如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用"/>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://awyugan.github.io/post/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "【译】Large Transformer Model 推理优化 | Lil'Log",
+      "item": "https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "【译】Large Transformer Model 推理优化 | Lil'Log",
+  "name": "【译】Large Transformer Model 推理优化 | Lil\u0027Log",
+  "description": "[January 10, 2023] · 31 min · Lilian Weng 2023-01-24 更新：增加了关于蒸馏 的小节 如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用",
+  "keywords": [
+    "language-model", "long-read\"", "architecture", "attention", "transformer", "foundation"
+  ],
+  "articleBody": "[January 10, 2023] · 31 min · Lilian Weng\n2023-01-24 更新：增加了关于蒸馏 的小节\n如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用的成本非常高。极高的推理成本，无论是在时间还是内存上，都成为了采用强大的 Transformer 来大规模解决实际任务的重大瓶颈。\n**为什么大型 Transformer 模型的推理很困难？**除了 SoTA 模型的不断增大，还有两个主要因素导致了推理的挑战性（Pope et al. 2022 ）：\n大内存占用。在推理时，需要在内存中保留模型参数和中间状态。例如， 在解码时间内，应将 KV 缓存存储在内存中；例如，对于批量大小为 512 和上下文长度为 2048，KV 缓存总计 3TB，这是模型大小的 3 倍(!)。 来自注意机制的推理成本与输入序列长度呈二次关系。 低并行性。推理生成以自回归方式执行，使解码过程难以并行化。 在这篇文章中，我们将探讨几种使 Transformer 推理更为高效的方法。其中一些是通用的网络压缩方法，而另一些是特定于 Transformer 架构的。\n方法概览 通常，我们将以下内容视为模型推理优化的目标：\n通过使用更少的 GPU 设备和更少的 GPU 内存来减小模型的内存占用； 通过降低所需的 FLOPs 数量来减少期望的计算复杂度； 减少推理延迟，使事务运行得更快。 可以使用几种方法来使推理在内存或/和时间上更便宜。\n应用各种 并行性，以便在大量 GPU 上扩展模型。模型组件和数据的智能并行性使得可以运行具有万亿参数的模型。 内存 卸载，将暂时不用的数据卸载到 CPU，并在稍后需要时再读回。这有助于节省内存，但会导致更高的延迟。 智能的批处理策略；例如，EffectiveTransformer 将连续序列打包在一起，以消除一个批次内的填充。 网络 压缩 技术，如 剪枝、量化、蒸馏。较小尺寸的模型（无论是在参数计数还是位宽方面）应该需要较少的内存并运行得更快。 针对目标模型架构的改进。许多 架构变更，尤其是对注意层的那些变更，有助于提高 Transformer 解码速度。 查看大型模型训练的前一篇文章 ，了解不同类型的训练并行性和包括CPU内存卸载在内的节省内存设计。本文侧重于网络压缩技术和针对 Transformer 模型的特定架构改进。\n蒸馏 知识蒸馏 (KD; Hinton 等人 2015 , Gou 等人 2020 )是一种直接的方法，通过从预训练的昂贵模型（“教师模型”）中转移技能，构建一个更小、更便宜的模型（“学生模型”）来加速推理。对于如何构造学生架构几乎没有什么限制，只要与教师的输出空间匹配，以便构建适当的学习目标。\n图 1. 教师-学生知识蒸馏训练的通用框架。(图片来源：Gou 等人 2020 )\n给定一个数据集，学生模型通过蒸馏损失来模仿教师的输出。通常神经网络具有一个 softmax 层；例如，LLM 输出一个关于 token 的概率分布。让我们用 $\\mathbf{z}_t$ 和 $\\mathbf{z}_s$ 分别表示教师和学生模型在 softmax 之前的 logits 层。蒸馏损失 通过高温度 $T$ 最小化两个 softmax 输出之间的差异。当已知地面真实标签 $\\mathbf{y}$ 时，我们可以将其与学生的软 logits 之间的监督学习目标结合起来，例如使用交叉熵。\n$$ \\mathcal{L}_\\text{KD} = \\mathcal{L}_\\text{distll}(\\text{softmax}(\\mathbf{z}_t, T), \\text{softmax}(\\mathbf{z}_s, T)) + \\lambda\\mathcal{L}_\\text{CE}(\\mathbf{y}, \\mathbf{z}_s) $$\n其中，$\\lambda$ 是一个用于平衡软和硬学习目标的超参数。对于 $\\mathcal{L}_\\text{distll}$，常见的选择是 KL 散度 / 交叉熵。\n一个成功的早期尝试是 DistilBERT (Sanh 等人 2019 )，它能够在保持 BERT 在微调下游任务上 97% 的性能的同时，将 BERT 的参数减少 40%，并使运行速度提高 71%。DistilBERT 的预训练损失是软蒸馏损失、监督训练损失（即在 BERT 的情况下为 掩码语言模型损失 $\\mathcal{L}_\\text{MLM}$）和特殊的余弦嵌入损失的组合，以对齐教师和学生之间的隐藏状态向量。\n蒸馏可以很容易地与量化 、剪枝 或稀疏化 技术相结合，其中教师模型是原始的全精度、密集模型，而学生模型被量化、剪枝或修剪以具有更高的稀疏度水平。\n量化 在深度神经网络上应用量化有两种常见方法：\n后训练量化 (PTQ)：首先对模型进行训练至收敛，然后将其权重转换为低精度，无需更多训练。与训练相比，实现起来通常相对便宜。 量化感知训练 (QAT)：在预训练或进一步微调过程中应用量化。QAT 能够获得更好的性能，但需要额外的计算资源和代表性的训练数据。 我们应当意识到理论上最优的量化策略与硬件内核支持之间的差距。由于缺乏某些类型的矩阵乘法（例如 INT4 x FP16）的 GPU 内核支持，下述方法并非所有都能使实际推理速度加快。\nTransformer 量化的挑战 许多关于 Transformer 模型量化的研究都有相同的观察：简单的低精度（例如 8 位）后训练量化会导致性能显著下降，主要是由于激活的高动态范围，而一个天真的激活量化策略无法保持容量。\n图 2. 只将模型权重量化为 8 位，同时保持激活的全精度（W8A32），比将激活量化为 8 位，无论权重是否为低精度（W8A8 和 W32A8）都能获得更好的结果。 (图片来源：Bondarenko et al. 2021 )\nBondarenko et al. (2021) 在一个小的 BERT 模型中观察到，由于输出张量中的强异常值，FFN 的输入和输出具有非常不同的动态范围。因此，对 FFN 的残差和进行张量量化很可能会导致明显的误差。\n随着模型大小不断增长至数十亿参数，所有 Transformer 层中开始出现高幅度的异常特征，从而导致简单低位量化失败。Dettmers et al. (2022) 观察到 OPT 模型大于 6.7B 参数时出现了这种现象。较大的模型有更多具有极端异常值的层，而这些异常特征对模型性能有显著影响。某些维度中激活异常值的规模可以比大多数其他值大 ~100×。\n图 3. 随着 OPT 模型大小的增加，一组语言任务（WinoGrande、HellaSwag、PIQA、LAMBADA）的平均零射击准确率。（图片来源：Dettmers et al. 2022 ）\n后训练量化（PTQ） 混合精度量化 解决上述量化挑战的最直接方法是对权重和激活实施不同精度的量化。\nGOBO (Zadeh et al. 2020 ) 是首批应用后训练量化（post-training quantization）于 transformer（例如小型的 BERT 模型）的模型之一。它假设每层的模型权重遵循高斯分布，因此通过追踪每层的均值和标准差来检测异常值。异常特征保持原始形式，而其他值则分割成多个箱子（bins），并且只存储权重的相应箱子索引和中心值。\n基于只有某些激活层（例如，FFN 后的残差连接）在 BERT 中导致性能大幅下降的观察，Bondarenko et al. (2021) 采用了混合精度量化，对问题激活使用 16 位量化，而对其他激活使用 8 位量化。\nLLM.int8() 中的混合精度量化 (Dettmers et al. 2022 ) 是通过两种混合精度分解来实现的：\n由于矩阵乘法包含了行向量和列向量之间一组独立的内积，我们可以对每个内积施加独立的量化：每行和每列按绝对最大值进行缩放，然后量化为 INT8。 异常激活特征（例如，比其他维度大 20 倍）保持在 FP16 中，但它们只占总权重的一小部分。如何识别异常值是基于经验的。 图 4. LLM.int8() 的两种混合精度分解。 (图片来源：Dettmers et al. 2022 )\n细粒度量化 图 5. 不同粒度量化的比较。$d$ 是模型大小/隐藏状态维度，$h$ 是一个 MHSA (多头自注意力) 组件中的头数。\n简单地量化一层中的整个权重矩阵（“每张量” 或 “每层” 量化）实现最为简单，但不会导致良好的量化粒度。\nQ-BERT (Shen, Dong \u0026 Ye, et al. 2020 ) 对微调过的 BERT 模型应用了 组内量化，将 MHSA（多头自注意力）中 每个头 的单独矩阵 $W$ 视为一个组，然后应用基于 Hessian 的混合精度量化。\n每嵌入组（PEG） 激活量化是由观察到的异常值只出现在 $d$ （隐藏状态/模型大小）维度中的少数几个维度上所激发的 (Bondarenko et al. 2021 )。每嵌入运算相当耗费计算资源。相比之下，PEG 量化将激活张量沿嵌入维度分割成几个大小相等的组，同一组中的元素共享量化参数。为确保所有异常值被组合在一起，他们应用了基于范围的确定性排列嵌入维度，其中维度按其值范围排序。\nZeroQuant (Yao et al. 2022 ) 对权重使用 组内量化，与 Q-BERT 中的方式相同，对激活使用 逐 Tkoen 量化。为避免昂贵的量化和反量化计算，ZeroQuant 构建了定制的 内核，将量化操作与其前一个操作 融合。\n量化的二阶信息 Q-BERT（Shen, Dong \u0026 Ye 等人，2020 ）为其混合精度量化开发了 Hessian AWare Quantization（HAWQ）。其动机是具有较高 Hessian 系数（即，较大的顶部特征值）的参数对量化更为敏感，因此需要更高的精度。本质上，这是一种识别异常值的方法。\n从另一个角度来看，量化问题是一个优化问题。给定权重矩阵 $ \\mathbf{W} $ 和输入矩阵 $ \\mathbf{X} $，我们想要找到一个量化的权重矩阵 $ \\hat{\\mathbf{W}} $ 来最小化 MSE：\n$$ \\hat{\\mathbf{W}}^* = \\arg\\min_{\\hat{\\mathbf{W}}} | \\mathbf{W}\\mathbf{X} - \\hat{\\mathbf{W}}\\mathbf{X}| $$\nGPTQ（Frantar 等人，2022 ）将权重矩阵 $ \\mathbf{W} $ 视为行向量的集合 $ \\mathbf{w} $，并对每行独立应用量化。GPTQ 迭代地量化更多的权重，这些权重是贪婪地选择的，以最小化量化误差。选定的权重更新有一个封闭形式的公式，利用 Hessian 矩阵。如果感兴趣，可以在论文和 OBQ（Optimal Brain Quantization；Frantar \u0026 Alistarh 2022 ）方法中阅读更多详情。GPTQ 可以将 OPT-175B 中的权重位宽减少到 3 或 4 位，而不会有太多性能损失，但它只适用于模型权重，而不适用于激活。\n异常值平滑 众所周知，在 transformer 模型中，激活的量化比权重的量化更为困难。SmoothQuant（Xiao \u0026 Lin，2022 ）提出了一个聪明的解决方案，通过数学等效变换将异常特征从激活平滑到权重，然后对权重和激活（W8A8）都启用量化。因此，SmoothQuant 具有比混合精度量化更好的硬件效率。\n图 6. SmoothQuant 在离线状态下将尺度方差从激活迁移到权重，以减少激活量化的难度。得到的新权重和激活矩阵都易于量化。（图片来源：Xiao \u0026 Lin，2022 ）\n考虑每通道平滑因子 $ \\mathbf{s} $，SmoothQuant 按照以下方式缩放权重：\n$ \\mathbf{Y} = (\\mathbf{X} \\text{diag}(\\mathbf{s})^{-1}) \\cdot (\\text{diag}(\\mathbf{s})\\mathbf{W}) = \\hat{\\mathbf{X}}\\hat{\\mathbf{W}} $\n平滑因子可以很容易地融入离线的先前层的参数中。超参数 $ \\alpha $ 控制我们将量化难度从激活迁移到权重的程度：$ \\mathbf{s} = \\max (| \\mathbf{X}_j |)^\\alpha / \\max( | \\mathbf{W}_j |)^{1-\\alpha} $。论文发现，对于许多实验中的 LLM，$ \\alpha=0.5 $ 是一个甜蜜点。对于激活中具有更显著异常值的模型，可以调整 $ \\alpha $ 以使其更大。\n量化感知训练（QAT） 量化感知训练将量化操作融入到预训练或精调过程中。它直接以低位表示形式学习模型权重，并以额外的训练时间和计算为代价，带来了更好的性能。\n最直接的方法是在量化后对模型进行精调，使用与预训练数据集相同或具有代表性的训练数据集。训练目标可以与预训练相同（例如，通用语言模型训练中的 NLL/MLM）或特定于我们关心的下游任务（例如，分类的交叉熵）。\n另一种方法是将全精度模型视为教师模型，将低精度模型视为学生模型，然后使用蒸馏损失优化低精度模型。蒸馏通常不需要使用原始数据集；例如，Wikipedia 数据集是一个不错的选择，甚至随机 Tkoen 也可以带来不错的性能提升。逐层知识蒸馏（LKD；Yao 等，2022 ）方法逐层量化网络，并使用其原始的、未量化的版本作为教师模型。在给定相同输入的情况下，LKD 最小化了层权重乘法和量化层权重乘法之间的 MSE。\n剪枝 网络剪枝旨在通过修剪不重要的模型权重或连接来减小模型大小，同时保持模型容量。它可能需要或可能不需要重新训练。剪枝可以是非结构化的或结构化的。\n非结构化剪枝允许丢弃任何权重或连接，因此它不保留原始网络架构。非结构化剪枝通常不适用于现代硬件，并且不会导致实际推理速度的提升。 结构化剪枝旨在保持密集矩阵乘法形式，其中某些元素为零。他们可能需要遵循某些模式限制以适应硬件内核支持。在这里，我们关注结构化剪枝以实现 Transformer 模型中的高稀疏性。 构建剪枝网络的常规工作流程\r包括三个步骤：\n训练密集网络直至收敛； 剪枝网络以移除不需要的结构； 可选地重新训练网络以使用新权重恢复性能。 通过网络剪枝在密集模型中发现稀疏结构的想法，同时稀疏网络仍然可以保持相似的性能，是受彩票票据假设 （LTH）的启发：一个随机初始化的、密集的、前馈网络包含一个子网络池，其中只有一个子集（一个稀疏网络）是*“中奖票”*，当它们单独训练时可以实现最优性能。\n如何剪枝？ 幅度剪枝 是最简单但相当有效的剪枝方法 —— 会修剪绝对值最小的权重。实际上，一些研究（Gale et al. 2019 ）发现 简单的幅度剪枝方法可以获得与复杂剪枝方法相当或更好的结果，例如变分丢弃 （Molchanov et al. 2017 ）和 $ l_0 $ 正则化（Louizos et al. 2017 ）。幅度剪枝易于应用于大型模型，并在多种超参数范围内取得了相当稳定的性能。\nZhu \u0026 Gupta (2017) 发现 大型稀疏模型能够比其小型但密集的对应物取得更好的性能。他们提出了 逐渐幅度剪枝 (GMP) 算法，该算法逐渐增加网络的稀疏度。在每个训练步骤中，绝对值最小的权重被屏蔽为零，以实现所需的稀疏度水平 $ s $，并且在反向传播过程中，屏蔽的权重不会得到梯度更新。随着训练步骤的增加，所需的稀疏度水平 $ s $ 会增加。GMP 的过程对学习率计划敏感，该计划应高于密集网络训练中使用的学习率，但不能太高以防止收敛。\n迭代剪枝 (Renda et al. 2020 ) 多次重复步骤 2（剪枝）和步骤 3（重新训练）：每次迭代只剪枝一小部分权重，并对模型进行重新训练。该过程重复，直到达到所需的稀疏度水平。\n如何重新训练？ 重新训练步骤可以是使用相同的预训练数据或其他特定任务数据集进行简单的微调。\n彩票假说 提出了一种 权重回溯 重新训练技术：剪枝后，未剪枝的权重重新初始化为训练早期的原始值，然后按照相同的学习率计划进行重新训练。\n学习率回溯 (Renda et al. 2020 ) 只将学习率重置为早期值，而未剪枝的权重自上次训练阶段结束以来保持不变。他们观察到（1）在所有测试场景中，权重回溯的重新训练优于微调的重新训练，以及（2）学习率回溯在所有测试场景中均匹配或优于权重回溯。\n稀疏性 稀疏性是在保持模型推理计算效率的同时扩展模型容量的有效方式。在这里，我们考虑了转换器的两种稀疏性类型：\n稀疏化密集层，包括自注意力和 FFN 层。 稀疏模型架构；即通过整合 Mixture-of-Experts (MoE) 组件。 通过剪枝实现的 N:M 稀疏性 N:M 稀疏性 是一种与现代 GPU 硬件优化良好协作的结构化稀疏模式，在这种模式中，每 $M$ 个连续元素中的 $N$ 个元素是零。例如，Nvidia A100 GPU 的稀疏张量核心支持 2:4 稀疏性以实现更快的推理（Nvidia 2020 ）。\n图 7. 2:4 结构化稀疏矩阵及其压缩表示。 (图片来源：Nvidia blog )\n为了使密集神经网络遵循 N:M 结构化稀疏模式，Nvidia (2020) 建议使用三步常规工作流 来训练剪枝网络：训练 –\u003e 剪枝以满足 2:4 稀疏性 –\u003e 重新训练。\n排列列可以在剪枝过程中提供更多选项，以保留大幅度的参数或满足特殊的限制，如 N:M 稀疏性（Pool \u0026 Yu 2021 ）。只要两个矩阵的配对轴以相同的顺序排列，矩阵乘法的结果就不会改变。例如，\n$ 1 $ 在自注意力模块中，如果在查询嵌入矩阵 $\\mathbf{Q}$ 的轴 1 和键嵌入矩阵 $\\mathbf{K}^\\top$ 的轴 0 上应用相同的排列顺序，那么 $\\mathbf{Q}\\mathbf{K}^\\top$ 的矩阵乘法的最终结果将保持不变。\n图 8. 保持自注意力模块结果不变的 $\\mathbf{Q}$（轴 1）和 $\\mathbf{K}^\\top$（轴 0）的相同排列示意图。\n$ 2 $ 在包含两个 MLP 层和一个 ReLU 非线性层的 FFN 层中，我们可以按相同的顺序排列第一个线性权重矩阵 $\\mathbf{W}_1$（沿着轴 1）和第二个线性权重矩阵 $\\mathbf{W}_2$（沿着轴 0）。\n图 9. 保持 FFN 层输出不变的 $\\mathbf{W}_1$（轴 1）和 $\\mathbf{W}_2$（轴 0）的相同排列示意图。为简单起见，省略了偏置项，但应在它们上也应用相同的排列。\n为了执行 N:M 结构化稀疏，让我们将一个矩阵的列分成多个包含 $M$ 列的片段（名为 “stripe”），我们可以轻松地观察到，每个条纹内的列的顺序和条纹的顺序对 N:M 稀疏限制没有影响。\nPool \u0026 Yu (2021) 提出了一种迭代贪婪算法，以找到最大化 N:M 稀疏性的权重幅度的最优排列。所有通道对都被推测性地交换，只有导致幅度最大增加的交换被采纳，从而生成新的排列并结束单次迭代。贪婪算法可能只会找到局部最小值，因此他们引入了两种技术来逃脱局部最小值：\n有界回归：在实践中，两个随机通道被交换，最多交换固定次数。解决方案搜索仅限于一个通道交换的深度，以保持搜索空间宽而浅。 狭窄、深度搜索：选择多个条纹并同时优化它们。 图 10. 寻找 N:M 稀疏性的最佳排列的算法，贪婪且迭代地进行。（图片来源：Pool \u0026 Yu 2021 ）\n如果网络在修剪之前进行排列，与在默认通道顺序中修剪网络相比，它可以获得更好的性能。\n为了从头开始训练具有 N:M 稀疏性的模型，Zhou \u0026 Ma, 等人 2021 扩展了 STE (Straight-Through Estimator；Bengio 等人 2013 )，它通常用于模型量化中的反向传播更新，以便用于幅度修剪和稀疏参数更新。\nSTE 计算相对于修剪网络 $ \\widetilde{W} $ 的稠密参数的梯度 $ \\partial \\mathcal{L}/\\partial \\widetilde{W} $，并将其作为近似应用于稠密网络 $ W $：\n$$ W_{t+1} \\gets W_t - \\gamma \\frac{\\partial\\mathcal{L}}{\\partial\\widetilde{W}} $$\n扩展版本，SR-STE (Sparse-refined STE)，通过以下方式更新稠密权重 $W$：\n$$ W_{t+1} \\gets W_t - \\gamma \\frac{\\partial\\mathcal{L}}{\\partial\\widetilde{W}} + \\lambda_W (\\bar{\\mathcal{E}} \\odot W_t) $$\n其中 $\\bar{\\mathcal{E}}$ 是 $\\widetilde{W}$ 的掩码矩阵，$\\odot$ 是元素对应乘法。SR-STE 旨在通过（1）限制在 $\\widetilde{W}_t$ 中修剪的权重值，并且（2）提升 $\\widetilde{W}_t$ 中未修剪的权重，以防止二进制掩码发生较大变化。\n图 11. STE 和 SR-STE 的比较。$\\odot$ 是元素对应乘法；$\\otimes$ 是矩阵乘法。（图片来源：Zhou \u0026 Ma, 等人 2021 ）\n与 STE 或 SR-STE 不同，Top-KAST（Jayakumar 等人 2021 ）方法可以在训练的前向和反向传播中保持恒定的稀疏性，但不需要具有稠密参数或稠密梯度的前向传播。\n在一个训练步骤 $ t $ 中，Top-KAST 进程如下：\n稀疏前向传播：选择参数子集 $ A^t \\subset \\Theta $，其中每层的参数子集包含按幅度排列的前-$ K $ 参数，限制为前 $ D $-比例的权重。在时间 $ t $ 时，如果不在 $ A^t $ 中（活动权重），参数化 $ \\alpha^t $ 的参数将被清零。 $$ \\alpha^t_i = \\begin{cases} \\theta^t_i \u0026 \\text{ if } i \\in A^t = {i \\mid \\theta^t_i \\in \\text{TopK}(\\theta^t, D) }\\\\ 0 \u0026 \\text{ otherwise} \\end{cases} $$\n其中 $ \\text{TopK}(\\theta, x) $ 根据幅度从 $ \\theta $ 中选择前 $ x $ 比例的权重。\n稀疏反向传播：然后将梯度应用于较大的参数子集 $ B \\subset \\Theta $，其中 $ B $ 包含 $ (D+M) $-比例的权重，且 $ A \\subset B $。更新较大比例的权重可以更有效地探索不同的修剪掩码，使得更可能在前 $ D $-比例的活动权重中引起排列。\n$$ \\Delta_{\\theta^t_i} = \\begin{cases} -\\eta \\nabla_{\\alpha_t} \\mathcal{L}(y, x, \\alpha^t)_i \u0026 \\text{ if } i\\in B^t = {i \\mid \\theta^t_i \\in \\text{TopK}(\\theta^t, D+M) } \\\\ 0 \u0026 \\text{ otherwise } \\end{cases} $$\n训练分为两个阶段，集合 $B \\setminus A$ 中的额外坐标控制引入了多少探索。探索的数量预计会在训练过程中逐渐减少，掩码最终会稳定。\n图 12. Top-KAST的剪枝掩码随时间稳定。(图片来源：Jayakumar等人，2021 )\n为了防止富者愈富现象，Top-KAST通过L2正则化损失来惩罚活动权重的幅度，以鼓励对新项目的更多探索。在$B \\setminus A$中的参数比在$A$中的参数受到更多的惩罚，以在更新时提高选择标准，稳定掩码。\n$$ L_\\text{penalty}(\\alpha^t_i) = \\begin{cases} |\\theta^t_i| \u0026 \\text{ if } i \\in A^t \\ |\\theta^t_i| / D \u0026 \\text{ if } i \\in B^t \\setminus A^t \\ 0 \u0026 \\text{ otherwise} \\end{cases} $$\n稀疏化 Transformer Scaling Transformer（Jaszczur等人，2021 ）在 transformer 架构中稀疏化了自注意力和 FFN 层，实现了对单个样例推理的 37 倍加速。\n图 13. 在不同层应用稀疏化时，transformer 模型解码单个 Tkoen （未分批推理）的速度。（图片来源：Jaszczur等人，2021 ）\n稀疏 FFN 层：每个 FFN 层包含 2 个 MLP 和一个 ReLU，在两者之间。由于 ReLU 会引入许多零，他们在激活上实现了固定结构，以在一个由 $N$ 个元素组成的块中仅强制一个非零值。稀疏模式是动态的，每个 Tkoen 都不同。\n$$ \\begin{aligned} Y_\\text{sparse} \u0026= \\max(0, xW_1 + b_1) \\odot \\text{Controller}(x) \\ \\text{SparseFFN}(x) \u0026= Y_\\text{sparse} W_2 + b_2 \\ \\text{Controller}(x) \u0026= \\arg\\max(\\text{Reshape}(x C_1 C_2, (-1, N))) \\end{aligned} $$\n其中 $Y_\\text{sparse}$ 中的每个激活对应于 $W_1$ 中的一列和 $W_2$ 中的一行。控制器被实现为低秩瓶颈密集层，$C_1 \\in \\mathbb{R}^{d_\\text{model} \\times d_\\text{lowrank}}, C_2 \\in \\mathbb{R}^{d_\\text{lowrank} \\times d_\\text{ff}}$，且 $d_\\text{lowrank} = d_\\text{model} / N$。它在推理时使用 $\\arg\\max$ 来选择哪些列应该为非零，并在训练期间使用 Gumbel-softmax 技巧（Jang等人，2016 ）。由于我们可以在加载 FFN 权重矩阵之前计算 $\\text{Controller}(x)$，我们知道哪些列将被清零，因此选择 不加载 它们以加速推理。\n图 14. (a) 稀疏 FFN 层；红色列没有加载到内存中，以便更快地推理。 (b) 1:4 稀疏度的稀疏 FFN 控制器。（图片来源：Jaszczur等人，2021 ） Lilian的附注：论文中的图 (a) 描述实际上是 $Y_\\text{sparse} = \\max\\big(0, (xW_1 + b_1) \\odot \\text{Controller}(x)\\big)$，但这不会改变结果。\n稀疏 QKV（注意力）层：在注意力层中，维数 $d_\\text{model}$ 被划分为 $S$ 个模块，每个模块的大小为 $M=d_\\text{model} /S$。为了确保每个细分都能访问嵌入的任何部分，Scaling Transformer 引入了一个乘法层（即，乘法层按元素方式乘以来自多个神经网络层的输入），它可以表示任意排列，但参数少于密集层。\n对于输入向量 $x \\in \\mathbb{R}^{d_\\text{model}}$，乘法层输出 $y \\in \\mathbb{R}^{S \\times M}$：\n$$ y_{s,m} = \\sum_i x_i D_{i,s} E_{i,m} \\quad\\text{where }D \\in \\mathbb{R}^{d_\\text{model} \\times S}, D \\in \\mathbb{R}^{d_\\text{model} \\times M} $$\n乘法层的输出是一个大小为 $\\in \\mathbb{R}^{\\text{batch size}\\times \\text{length} \\times S \\times M}$ 的张量。然后它通过一个二维卷积层进行处理，其中 $\\text{length}$ 和 $S$ 被视为图像的高度和宽度。这样的卷积层进一步减少了注意力层的参数数量和计算时间。\n图 15. (a) 引入了一个乘法层，以使分区能够访问嵌入的任何部分。 (b) 乘法密集层和 2-D 卷积层的组合减少了注意力层的参数数量和计算时间。（图片来源：Jaszczur 等，2021 ）\n为了更好地处理长序列，Scaling Transformer 进一步配备了来自 Reformer 的 LSH（局部敏感哈希）注意力 (Kitaev, et al. 2020 ) 和 FFN 块递归，从而产生了 Terraformer。\nMixture-of-Experts Mixture-of-experts（MoE）模型依赖于一组“专家”网络，每个示例只激活网络的一个子集以获得预测。该想法可以追溯到 1990 年代 (Jacobs et al. 1991 )，与集成方法有很强的关联。有关如何将 MoE 模块整合到 transformer 中的详细信息，请查看我之前关于大型模型训练技术的 博文 和 MoE 的调查论文 Fedus et al. 2022 。\n借助 MoE 架构，在解码时只使用部分参数，从而节省了推理成本。每个专家的容量可以通过超参数，容量因子 $C$，进行调整，专家容量定义为：\n$$ \\text{Expert capacity} = \\text{round}(C \\cdot k \\cdot \\frac{\\text{total # tokens in one batch}}{\\text{# experts}}) $$\n其中每个 Tkoen 选择 top-$k$ 专家。较大的 $C$ 导致更高的专家容量和改善的性能，但计算成本更高。当 $C\u003e1$ 时，会添加一个松散容量；否则，当 $C\u003c1$ 时，路由网络需要忽略一些 Tkoen 。\n路由策略改进 MoE 层具有一个路由网络，为每个输入 Tkoen 分配一组专家的子集。在原始的 MoE 模型中，路由策略是按照它们在自然顺序中出现的顺序，将每个 Tkoen 路由到不同的首选专家。如果一个 Tkoen 被路由到已达到其容量的专家，则该 Tkoen 将被标记为 “溢出”并跳过。\nV-MoE（Vision MoE；Riquelme et al. 2021 ）将 MoE 层添加到 ViT（Vision Transformer）。它与先前的 SoTA 性能相匹配，但仅需要 一半 的推理计算。V-MoE 可以扩展到 150 亿参数。他们的实验使用 $k=2$，32 个专家和 every-2 专家布置（意味着 MoEs 每隔一层放置）。\n由于每个专家的容量有限，如果它们在预定义的序列顺序中出现太晚（例如，句子中的单词顺序或图像补丁的顺序），一些重要且信息丰富的 Tkoen 可能必须被丢弃。为了避免原始路由方案中的这种缺点，V-MoE 采用 BPR（Batch Priority Routing，批量优先路由） 首先为具有高优先级得分的 Tkoen 分配专家。BPR 在专家分配之前为每个 Tkoen 计算优先级得分（最大值或 top-$k$ 路由器得分的总和），并相应地改变 Tkoen 的顺序。这确保了专家容量缓冲区首先会用关键 Tkoen 填充。\n图 16. 如何根据优先级分数丢弃图像块当 $C \u003c 1$ 时（图片来源：Riquelme 等人 2021 ）\nBPR 在 $C \\leq 0.5$ 时的表现比普通的路由要好得多，在这个点模型开始丢弃大量的令牌。它使模型即使在相当低的容量下也能与密集网络竞争。\n在探究如何解释图像类-专家关联时，他们观察到早期的 MoE 层更为通用，而后期的 MoE 层可能会针对少数图像类别而专门化。\n任务 MoE （Task-level Mixture-of-Experts；Kudugunta 等人 2021 ）将任务信息考虑在内，并在 任务 级别而不是单词或令牌级别上对令牌进行路由，以进行机器翻译。他们以 MNMT（多语言神经机器翻译）为例，并根据目标语言或语言对对翻译任务进行分组。\n令牌级别的路由是动态的，每个令牌的路由决策是分离的。因此，在推理时，服务器需要预加载所有的专家。相比之下，任务级路由在给定固定任务时是 静态 的，因此一个任务的推理服务器只需要预加载 $k$ 个专家（假设采用 top-$k$ 路由）。根据他们的实验，与密集模型基线相比，任务 MoE 可以实现类似的性能增益，具有 2.6 倍的最高吞吐量和解码器大小的 1.6%。\n任务级 MoE 的本质是根据预定义的 启发式方法 对任务分布进行分类，并将这种人类知识融入到路由器中。当这种启发式方法不存在时（例如，考虑一项通用的句子延续任务），使用任务 MoE 的方法并不明确。\nPR-MoE （Pyramid residual MoE；Rajbhandari 等人 2022 ）使每个令牌通过一个固定的 MLP 和一个选定的专家。由于观察到在后期层的 MoE 更为有益，PR-MoE 在后期层采用了更多的专家。DeepSpeed 库实现了灵活的多专家、多数据并行性，以便使用不同数量的专家跨层训练 PR-MoE。\n图 17. 与标准 MoE 相比，PR-MoE 架构的示意图（图片来源：Rajbhandari 等人 2022 ）\n内核改进 专家网络可以托管在不同的设备上。但是，当 GPU 的数量增加时，每个 GPU 的专家数量减少，而专家之间的通信（“全对全”）变得更为昂贵。大量 GPU 之间的专家“全对全”通信依赖于 NCCL 的 P2P API，但在大规模时无法饱和高速链接（例如 NVLink，HDR InfiniBand）的带宽，因为随着更多节点的使用，单个块变得更小。现有的全对全算法在大规模、小工作负载下表现不佳。有多种内核改进可以实现更高效的 MoE 计算，例如使全对全通信更便宜/更快。\nDeepSpeed 库（Rajbhandari 等人 2022 ）和 TUTEL（Hwang 等人 2022 ）实现了基于树的分层全对全算法，该算法首先运行节点内全对全，然后运行节点间全对全。它将通信跳数从 $O(G)$ 减少到 $O(G_\\text{node} + G / G_\\text{node})$，其中 $G$ 是 GPU 节点的总数，$G_\\text{node}$ 是每个节点的 GPU 核心数。尽管此类实现中的通信量加倍，但它在小批量的大规模时实现了更好的缩放，因为在批量大小小时，瓶颈在延迟而不是通信带宽上。\nDynaMoE （Kossmann 等人 2022 ）使用动态重新编译来适应专家之间的动态工作负载。RECOMPILE 机制从头开始编译计算图，并仅在需要时重新分配资源。它衡量了分配给每个专家的样本数量，并动态调整其容量因子 $C$，以减少运行时的内存和计算需求。基于观察到样本-专家分配在训练早期收敛的情况，引入了样本分配缓存，然后使用 RECOMPILE 来消除门控网络和专家之间的依赖性。\n架构优化 这篇综述论文 高效 Transformers（Tay et al. 2020 ）回顾了一系列新的 transformer 架构，它们为了更好的 计算和内存效率 而进行了改进。强烈推荐阅读。您也可以查看我的文章“Transformer Family Version 2.0” ，以深入了解包括降低模型运行成本的 transformer 架构的多方面改进。\n图 18. 高效 transformer 模型的分类。\n(图片来源：Tay et al. 2020 )\n由于自注意机制具有二次时间和内存复杂度，这是提高 transformer 解码效率的主要瓶颈，所有的高效 transformer 模型都在原本密集的注意层上应用了某种稀疏形式。这里只列举了一个高层次的概述，一些内容源自 Tay et al. 2020 。\n稀疏注意模式 固定模式 限制了注意矩阵的视野，使用预定义的固定模式。\n将输入序列划分为固定的块，例如 Blockwise Attention ； Image Transformer 使用局部注意； Sparse Transformer 使用跨步注意模式。 组合模式 学习对输入标记进行排序 / 聚类 - 在保持固定模式的效率优势的同时，实现了对序列的更优全局视图。\nSparse Transformer 结合了跨步和局部注意； 对于一个高维输入张量，Axial Transformer 不是对输入的扁平化版本应用注意力，而是沿着输入张量的单个轴应用多个注意力； ETC，Longformer 和 Big Bird 结合了局部和全局上下文，以及跨步或随机注意。 可学习模式 通过学习确定最优的注意模式。\nReformer 根据基于哈希的相似性（LSH）将标记聚集在一起； Routing Transformer 对标记执行 $k$-均值聚类； Sinkhorn Sorting Network 学习对输入序列的块进行排序。 循环机制 循环机制通过循环连接多个块 / 段。\nTransformer-XL 通过在段之间重用隐藏状态来利用更长的上下文。 通用 Transformer 将自我注意力与 RNN 中的循环机制相结合。 压缩 Transformer 是 Transformer-XL 的扩展，具有额外的内存，包含一组用于过去激活的内存插槽和用于压缩激活的压缩内存插槽。每当模型接受新的输入段时，主内存中最旧的激活将移至压缩内存，其中应用了压缩函数。 节省内存设计 节省内存设计指的是为了减少内存使用而对架构进行的修改。\nLinformer 将 keys 和 values 的长度维度投影到低维表示 ($N \\to k$)，从而将内存复杂度从 $N \\times N$ 降低到 $N \\times k$。 Shazeer (2019) 提出了 多查询注意力，该注意力在不同的注意力 “头” 之间共享 keys 和 values，大大减少了这些张量的大小和内存成本。 随机特征注意力和 Performer 使用 核方法 以实现自注意机制的更便宜的数学格式。 自适应注意力 自适应注意力 使模型能够学习最佳的注意力跨度，或者决定何时对不同的输入令牌进行提前退出。\n自适应注意力跨度 通过在令牌和其他 keys 之间的软掩码，训练模型学习每个令牌每个头的最佳注意力跨度。 通用 Transformer 结合了循环机制，并使用 ACT（自适应计算时间） 来动态决定循环步骤的数量。 深度自适应 Transformer 和 CALM 学习何时使用一些信心度量来为每个令牌提前退出计算层，以实现良好的性能 - 效率权衡。 Citation Cited as:\nWeng, Lilian. (Jan 2023). Large Transformer Model Inference Optimization. Lil’Log. https://lilianweng.github.io/posts/2023-01-10-inference-optimization/ .\nOr\n1 2 3 4 5 6 7 8 @article{weng2023inference, title = \"Large Transformer Model Inference Optimization\", author = \"Weng, Lilian\", journal = \"Lil'Log\", year = \"2023\", month = \"Jan\", url = \"https://lilianweng.github.io/posts/2023-01-10-inference-optimization/\" } References [1] Bondarenko et al. “Understanding and overcoming the challenges of efficient transformer quantization” ACL 2021.\n[2] Dettmers et al. “LLM.int8(): 8-bit Matrix Multiplication for Transformers at Scale” NeuriPS 2022\n[3] Zadeh et al. “Gobo: Quantizing attention-based NLP models for low latency and energy efficient inference.\" MICRO 2020\n[4] Shen, Dong \u0026 Ye, et al. “Q-BERT: Hessian based ultra low precision quantization of BERT” AAAI 2020.\n[5] Yao et al. “ZeroQuant: Efficient and affordable post-training quantization for large-scale transformers” arXiv preprint arXiv:2206.01861 (2022).\n[6] Frantar et al. “GPTQ: Accurate Quantization for Generative Pre-trained Transformers” arXiv preprint arXiv:2210.17323 (2022).\n[7] Xiao \u0026 Lin “SmoothQuant: Accelerated sparse neural training: A provable and efficient method to find N:M transposable masks.\" arXiv preprint arXiv:2211.10438 (2022). | code [8] Pool \u0026 Yu. “Channel Permutations for N:M Sparsity.\" NeuriPS 2021. | code [9] Zhou \u0026 Ma, et al. “Learning N:M fine-grained structured sparse neural networks from scratch.\" arXiv preprint arXiv:2102.04010 (2021).\n[10] Jayakumar et al. “Top-KAST: Top-K Always Sparse Training.\" NeuriPS 2020.\n[11] Nvidia. “Nvidia A100 tensor core GPU architecture.\" 2020.\n[12] Gale, Elsen \u0026 Hooker “The State of Sparsity in Deep Neural Networks.\" arXiv preprint arXiv:1902.09574 (2019).\n[13] Zhu \u0026 Gupta. “To Prune, or Not to Prune: Exploring the Efficacy of Pruning for Model Compression.\" arXiv preprint arXiv:1710.01878 (2017).\n[14] Renda et al. “Comparing rewinding and fine-tuning in neural network pruning.\" arXiv preprint arXiv:2003.02389 (2020).\n[15] Zhou \u0026 Ma, et al. “Learning N:M fine-grained structured sparse neural networks from scratch.\" arXiv preprint arXiv:2102.04010 (2021).\n[16] Pool \u0026 Yu. “Channel Permutations for N:M Sparsity.\" NeuriPS 2021. | code [17] Jaszczur et al. “Sparse is Enough in Scaling Transformers.\" NeuriPS 2021.\n[18] Mishra et al. “An Survey of Neural Network Compression.\" arXiv preprint arXiv:1710.09282 (2017).\n[19] Fedus et al. “A Review of Sparse Expert Models in Deep Learning.\" arXiv preprint arXiv:2209.01667 (2022)..\n[20] Riquelme et al. “Scaling vision with sparse mixture of experts.\" NeuriPS 2021.\n[21] Kudugunta et al. “Beyond Distillation: Task-level Mixture-of-Experts for Efficient Inference.\" arXiv preprint arXiv:2110.03742 (2021).\n[22] Rajbhandari et al. “DeepSpeed-MoE: Advancing mixture-of-experts inference and training to power next-generation ai scale.\" arXiv preprint arXiv:2201.05596 (2022).\n[23] Kossmann et al. “Optimizing mixture of experts using dynamic recompilations.\" arXiv preprint arXiv:2205.01848 (2022).\n[24] Hwang et al. “Tutel: Adaptive mixture-of-experts at scale.\" arXiv preprint arXiv:2206.03382 (2022). | code [25] Noam Shazeer. “Fast Transformer Decoding: One Write-Head is All You Need.\" arXiv preprint arXiv:1911.02150 (2019).\n[26] Tay et al. “Efficient Transformers: A Survey.\" ACM Computing Surveys 55.6 (2022): 1-28.\n[27] Pope et al. “Efficiently Scaling Transformer Inference.\" arXiv preprint arXiv:2211.05102 (2022).\n[28] Frankle \u0026 Carbin. “The Lottery Ticket Hypothesis: Finding Sparse, Trainable Neural Networks” ICLR 2019.\n[29] Elabyad et al. “Depth-Adaptive Transformer” ICLR 2020.\n[30] Schuster et al. “Confident Adaptive Language Modeling” arXiv preprint arXiv:2207.07061 (2022).\n[31] Gou et al. “https://arxiv.org/abs/2006.05525” arXiv preprint arXiv:2006.05525 (2020).\n[32] Hinton et al. “Distilling the Knowledge in a Neural Network” NIPS 2014.\n[33] Sanh et al. “DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter” Workshop on Energy Efficient Machine Learning and Cognitive Computing @ NeuriPS 2019.\nlanguage-model long-read architecture attention transformer foundation ",
+  "wordCount" : "11979",
+  "inLanguage": "en",
+  "datePublished": "2023-10-06T18:03:40+08:00",
+  "dateModified": "2023-10-06T18:03:40+08:00",
+  "author":{
+    "@type": "Person",
+    "name": "Lilian Weng"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Awyugan's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://awyugan.github.io/img/Q.gif"
+    }
+  }
+}
+</script>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://awyugan.github.io" accesskey="h" title="Awyugan&#39;s Blog (Alt + H)">
+                <img src="https://awyugan.github.io/img/avatar.jpg" alt="" aria-label="logo"
+                    height="35">Awyugan&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://awyugan.github.io/search/" title="Search">
+                    <span>🔍 搜索</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/" title="Awyugan&#39;s Blog">
+                    <span>🏠 主页</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/archives/" title="Archives">
+                    <span>🗃️ 归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/tags/" title="Tags">
+                    <span>🔖 标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://awyugan.github.io/about/" title="关于我">
+                    <span>ℹ️ 关于</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://awyugan.github.io">Home</a>&nbsp;»&nbsp;<a href="https://awyugan.github.io/post/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      【译】Large Transformer Model 推理优化 | Lil&#39;Log
+    </h1>
+    <div class="post-meta">
+
+
+
+
+
+
+
+
+
+
+创建:&nbsp;<span title='2023-10-06 18:03:40 +0800 CST'>2023-10-06</span>&nbsp;·&nbsp;更新:&nbsp;2023-10-06&nbsp;·&nbsp;字数:&nbsp;11979字&nbsp;·&nbsp;时长: 24分钟&nbsp;·&nbsp;
+作者:&nbsp;Lilian Weng
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#%e6%96%b9%e6%b3%95%e6%a6%82%e8%a7%88" aria-label="方法概览">方法概览</a></li>
+                <li>
+                    <a href="#%e8%92%b8%e9%a6%8f" aria-label="蒸馏">蒸馏</a></li>
+                <li>
+                    <a href="#%e9%87%8f%e5%8c%96" aria-label="量化">量化</a><ul>
+                        
+                <li>
+                    <a href="#transformer-%e9%87%8f%e5%8c%96%e7%9a%84%e6%8c%91%e6%88%98" aria-label="Transformer 量化的挑战">Transformer 量化的挑战</a></li>
+                <li>
+                    <a href="#%e5%90%8e%e8%ae%ad%e7%bb%83%e9%87%8f%e5%8c%96ptq" aria-label="后训练量化（PTQ）">后训练量化（PTQ）</a><ul>
+                        
+                <li>
+                    <a href="#%e6%b7%b7%e5%90%88%e7%b2%be%e5%ba%a6%e9%87%8f%e5%8c%96" aria-label="混合精度量化">混合精度量化</a></li>
+                <li>
+                    <a href="#%e7%bb%86%e7%b2%92%e5%ba%a6%e9%87%8f%e5%8c%96" aria-label="细粒度量化">细粒度量化</a></li>
+                <li>
+                    <a href="#%e9%87%8f%e5%8c%96%e7%9a%84%e4%ba%8c%e9%98%b6%e4%bf%a1%e6%81%af" aria-label="量化的二阶信息">量化的二阶信息</a></li>
+                <li>
+                    <a href="#%e5%bc%82%e5%b8%b8%e5%80%bc%e5%b9%b3%e6%bb%91" aria-label="异常值平滑">异常值平滑</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e9%87%8f%e5%8c%96%e6%84%9f%e7%9f%a5%e8%ae%ad%e7%bb%83qat" aria-label="量化感知训练（QAT）">量化感知训练（QAT）</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e5%89%aa%e6%9e%9d" aria-label="剪枝">剪枝</a><ul>
+                        
+                <li>
+                    <a href="#%e5%a6%82%e4%bd%95%e5%89%aa%e6%9e%9d" aria-label="如何剪枝？">如何剪枝？</a></li>
+                <li>
+                    <a href="#%e5%a6%82%e4%bd%95%e9%87%8d%e6%96%b0%e8%ae%ad%e7%bb%83" aria-label="如何重新训练？">如何重新训练？</a></li></ul>
+                </li>
+                <li>
+                    <a href="#%e7%a8%80%e7%96%8f%e6%80%a7" aria-label="稀疏性">稀疏性</a><ul>
+                        
+                <li>
+                    <a href="#%e9%80%9a%e8%bf%87%e5%89%aa%e6%9e%9d%e5%ae%9e%e7%8e%b0%e7%9a%84-nm-%e7%a8%80%e7%96%8f%e6%80%a7" aria-label="通过剪枝实现的 N:M 稀疏性">通过剪枝实现的 N:M 稀疏性</a></li>
+                <li>
+                    <a href="#%e7%a8%80%e7%96%8f%e5%8c%96-transformer" aria-label="稀疏化 Transformer">稀疏化 Transformer</a></li>
+                <li>
+                    <a href="#mixture-of-experts" aria-label="Mixture-of-Experts">Mixture-of-Experts</a><ul>
+                        
+                <li>
+                    <a href="#%e8%b7%af%e7%94%b1%e7%ad%96%e7%95%a5%e6%94%b9%e8%bf%9b" aria-label="路由策略改进">路由策略改进</a></li>
+                <li>
+                    <a href="#%e5%86%85%e6%a0%b8%e6%94%b9%e8%bf%9b" aria-label="内核改进">内核改进</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#%e6%9e%b6%e6%9e%84%e4%bc%98%e5%8c%96" aria-label="架构优化">架构优化</a><ul>
+                        
+                <li>
+                    <a href="#%e7%a8%80%e7%96%8f%e6%b3%a8%e6%84%8f%e6%a8%a1%e5%bc%8f" aria-label="稀疏注意模式">稀疏注意模式</a></li>
+                <li>
+                    <a href="#%e5%be%aa%e7%8e%af%e6%9c%ba%e5%88%b6" aria-label="循环机制">循环机制</a></li>
+                <li>
+                    <a href="#%e8%8a%82%e7%9c%81%e5%86%85%e5%ad%98%e8%ae%be%e8%ae%a1" aria-label="节省内存设计">节省内存设计</a></li>
+                <li>
+                    <a href="#%e8%87%aa%e9%80%82%e5%ba%94%e6%b3%a8%e6%84%8f%e5%8a%9b" aria-label="自适应注意力">自适应注意力</a></li></ul>
+                </li>
+                <li>
+                    <a href="#citation" aria-label="Citation">Citation</a></li>
+                <li>
+                    <a href="#references" aria-label="References">References</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>[January 10, 2023] · 31 min · Lilian Weng</p>
+<p>2023-01-24 更新：增加了关于<a href="#distillation">蒸馏</a>
+的小节</p>
+<p>如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用的成本非常高。极高的推理成本，无论是在时间还是内存上，都成为了采用强大的 Transformer 来大规模解决实际任务的重大瓶颈。</p>
+<p>**为什么大型 Transformer 模型的推理很困难？**除了 SoTA 模型的不断增大，还有两个主要因素导致了推理的挑战性（<a href="https://arxiv.org/abs/2211.05102" target="_blank" rel="noopener">Pope et al. 2022</a>
+）：</p>
+<ol>
+<li><em>大内存占用</em>。在推理时，需要在内存中保留模型参数和中间状态。例如，
+<ul>
+<li>在解码时间内，应将 KV 缓存存储在内存中；例如，对于批量大小为 512 和上下文长度为 2048，KV 缓存总计 3TB，这是模型大小的 3 倍(!)。</li>
+<li>来自注意机制的推理成本与输入序列长度呈二次关系。</li>
+</ul>
+</li>
+<li><em>低并行性</em>。推理生成以自回归方式执行，使解码过程难以并行化。</li>
+</ol>
+<p>在这篇文章中，我们将探讨几种使 Transformer 推理更为高效的方法。其中一些是通用的网络压缩方法，而另一些是特定于 Transformer 架构的。</p>
+<h1 id="方法概览">方法概览<a hidden class="anchor" aria-hidden="true" href="#方法概览">#</a></h1>
+<p>通常，我们将以下内容视为模型推理优化的目标：</p>
+<ul>
+<li>通过使用更少的 GPU 设备和更少的 GPU 内存来减小模型的内存占用；</li>
+<li>通过降低所需的 FLOPs 数量来减少期望的计算复杂度；</li>
+<li>减少推理延迟，使事务运行得更快。</li>
+</ul>
+<p>可以使用几种方法来使推理在内存或/和时间上更便宜。</p>
+<ol>
+<li>应用各种 <em>并行性</em>，以便在大量 GPU 上扩展模型。模型组件和数据的智能并行性使得可以运行具有万亿参数的模型。</li>
+<li>内存 <em>卸载</em>，将暂时不用的数据卸载到 CPU，并在稍后需要时再读回。这有助于节省内存，但会导致更高的延迟。</li>
+<li>智能的批处理策略；例如，<a href="https://github.com/bytedance/effective%5c_transformer" target="_blank" rel="noopener">EffectiveTransformer</a>
+ 将连续序列打包在一起，以消除一个批次内的填充。</li>
+<li>网络 <em>压缩</em> 技术，如 <em>剪枝、量化、蒸馏</em>。较小尺寸的模型（无论是在参数计数还是位宽方面）应该需要较少的内存并运行得更快。</li>
+<li>针对目标模型架构的改进。许多 <em>架构变更</em>，尤其是对注意层的那些变更，有助于提高 Transformer 解码速度。</li>
+</ol>
+<p>查看<a href="https://lilianweng.github.io/posts/2021-09-25-train-large/" target="_blank" rel="noopener">大型模型训练的前一篇文章</a>
+，了解不同类型的训练并行性和包括CPU内存卸载在内的节省内存设计。本文侧重于网络压缩技术和针对 Transformer 模型的特定架构改进。</p>
+<h1 id="蒸馏">蒸馏<a hidden class="anchor" aria-hidden="true" href="#蒸馏">#</a></h1>
+<p><strong>知识蒸馏</strong> (<strong>KD</strong>; <a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">Hinton 等人 2015</a>
+, <a href="https://arxiv.org/abs/2006.05525" target="_blank" rel="noopener">Gou 等人 2020</a>
+)是一种直接的方法，通过从预训练的昂贵模型（<em>&ldquo;教师模型&rdquo;</em>）中转移技能，构建一个更小、更便宜的模型（<em>&ldquo;学生模型&rdquo;</em>）来加速推理。对于如何构造学生架构几乎没有什么限制，只要与教师的输出空间匹配，以便构建适当的学习目标。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/v4D5W7zJ7CiJGntqTSvr5j"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/v4D5W7zJ7CiJGntqTSvr5j" class="img-shadow" alt="distillation.png" border="0" /></a></p>
+<p>图 1. 教师-学生知识蒸馏训练的通用框架。(图片来源：<a href="https://arxiv.org/abs/2006.05525" target="_blank" rel="noopener">Gou 等人 2020</a>
+)</p>
+<p>给定一个数据集，学生模型通过蒸馏损失来模仿教师的输出。通常神经网络具有一个 softmax 层；例如，LLM 输出一个关于 token 的概率分布。让我们用 $\mathbf{z}_t$ 和 $\mathbf{z}_s$ 分别表示教师和学生模型在 softmax 之前的 logits 层。<em>蒸馏损失</em> 通过高温度 $T$ 最小化两个 softmax 输出之间的差异。当已知地面真实标签 $\mathbf{y}$ 时，我们可以将其与学生的软 logits 之间的<em>监督</em>学习目标结合起来，例如使用交叉熵。</p>
+<div>
+<p>$$ \mathcal{L}_\text{KD} = \mathcal{L}_\text{distll}(\text{softmax}(\mathbf{z}_t, T), \text{softmax}(\mathbf{z}_s, T)) + \lambda\mathcal{L}_\text{CE}(\mathbf{y}, \mathbf{z}_s) $$</p>
+</div>
+<p>其中，$\lambda$ 是一个用于平衡软和硬学习目标的超参数。对于 $\mathcal{L}_\text{distll}$，常见的选择是 KL 散度 / 交叉熵。</p>
+<p>一个成功的早期尝试是 <strong>DistilBERT</strong> (<a href="https://arxiv.org/abs/1910.01108" target="_blank" rel="noopener">Sanh 等人 2019</a>
+)，它能够在保持 BERT 在微调下游任务上 97% 的性能的同时，将 BERT 的参数减少 40%，并使运行速度提高 71%。DistilBERT 的预训练损失是软蒸馏损失、监督训练损失（即在 BERT 的情况下为 <a href="https://lilianweng.github.io/posts/2019-01-31-lm/#MLM" target="_blank" rel="noopener">掩码语言模型损失</a>
+ $\mathcal{L}_\text{MLM}$）和特殊的<em>余弦嵌入损失</em>的组合，以对齐教师和学生之间的隐藏状态向量。</p>
+<p>蒸馏可以很容易地与<a href="#quantization">量化</a>
+、<a href="#pruning">剪枝</a>
+或<a href="#sparsity">稀疏化</a>
+技术相结合，其中教师模型是原始的全精度、密集模型，而学生模型被量化、剪枝或修剪以具有更高的稀疏度水平。</p>
+<h1 id="量化">量化<a hidden class="anchor" aria-hidden="true" href="#量化">#</a></h1>
+<p>在深度神经网络上应用量化有两种常见方法：</p>
+<ol>
+<li><em>后训练量化 (PTQ)</em>：首先对模型进行训练至收敛，然后将其权重转换为低精度，无需更多训练。与训练相比，实现起来通常相对便宜。</li>
+<li><em>量化感知训练 (QAT)</em>：在预训练或进一步微调过程中应用量化。QAT 能够获得更好的性能，但需要额外的计算资源和代表性的训练数据。</li>
+</ol>
+<p>我们应当意识到理论上最优的量化策略与硬件内核支持之间的差距。由于缺乏某些类型的矩阵乘法（例如 INT4 x FP16）的 GPU 内核支持，下述方法并非所有都能使实际推理速度加快。</p>
+<h2 id="transformer-量化的挑战">Transformer 量化的挑战<a hidden class="anchor" aria-hidden="true" href="#transformer-量化的挑战">#</a></h2>
+<p>许多关于 Transformer 模型量化的研究都有相同的观察：简单的低精度（例如 8 位）后训练量化会导致性能显著下降，主要是由于激活的高动态范围，而一个天真的激活量化策略无法保持容量。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/xr4nmBrgnHJZi7vAMz8mqA"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/xr4nmBrgnHJZi7vAMz8mqA" alt="quantization-experiment-table.png" border="0" /></a></p>
+<p>图 2. 只将模型权重量化为 8 位，同时保持激活的全精度（<code>W8A32</code>），比将激活量化为 8 位，无论权重是否为低精度（<code>W8A8</code> 和 <code>W32A8</code>）都能获得更好的结果。 (图片来源：<a href="https://arxiv.org/abs/2109.12948" target="_blank" rel="noopener">Bondarenko et al. 2021</a>
+)</p>
+<p><a href="https://arxiv.org/abs/2109.12948" target="_blank" rel="noopener">Bondarenko et al. (2021)</a>
+ 在一个小的 BERT 模型中观察到，由于输出张量中的强异常值，FFN 的输入和输出具有非常不同的动态范围。因此，对 FFN 的残差和进行张量量化很可能会导致明显的误差。</p>
+<p>随着模型大小不断增长至数十亿参数，所有 Transformer 层中开始出现高幅度的异常特征，从而导致简单低位量化失败。<a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">Dettmers et al. (2022)</a>
+ 观察到 <a href="https://arxiv.org/abs/2205.01068" target="_blank" rel="noopener">OPT</a>
+ 模型大于 6.7B 参数时出现了这种现象。较大的模型有更多具有极端异常值的层，而这些异常特征对模型性能有显著影响。某些维度中激活异常值的规模可以比大多数其他值大 ~100×。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/fkBC3ZS6bEVsfLesijqWYZ"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/fkBC3ZS6bEVsfLesijqWYZ" alt="OPT-models-outlier.png" border="0" /></a></p>
+<p>图 3. 随着 OPT 模型大小的增加，一组语言任务（WinoGrande、HellaSwag、PIQA、LAMBADA）的平均零射击准确率。（图片来源：<a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">Dettmers et al. 2022</a>
+）</p>
+<h2 id="后训练量化ptq">后训练量化（PTQ）<a hidden class="anchor" aria-hidden="true" href="#后训练量化ptq">#</a></h2>
+<h3 id="混合精度量化">混合精度量化<a hidden class="anchor" aria-hidden="true" href="#混合精度量化">#</a></h3>
+<p>解决上述量化挑战的最直接方法是对权重和激活实施不同精度的量化。</p>
+<p>GOBO (<a href="https://arxiv.org/abs/2005.03842" target="_blank" rel="noopener">Zadeh et al. 2020</a>
+) 是首批应用后训练量化（post-training quantization）于 transformer（例如小型的 BERT 模型）的模型之一。它假设每层的模型权重遵循高斯分布，因此通过追踪每层的均值和标准差来检测异常值。异常特征保持原始形式，而其他值则分割成多个箱子（bins），并且只存储权重的相应箱子索引和中心值。</p>
+<p>基于只有某些激活层（例如，FFN 后的残差连接）在 BERT 中导致性能大幅下降的观察，<a href="https://arxiv.org/abs/2109.12948" target="_blank" rel="noopener">Bondarenko et al. (2021)</a>
+ 采用了混合精度量化，对问题激活使用 16 位量化，而对其他激活使用 8 位量化。</p>
+<p><code>LLM.int8()</code> 中的混合精度量化 (<a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">Dettmers et al. 2022</a>
+) 是通过两种混合精度分解来实现的：</p>
+<ol>
+<li>由于矩阵乘法包含了行向量和列向量之间一组独立的内积，我们可以对每个内积施加独立的量化：每行和每列按绝对最大值进行缩放，然后量化为 INT8。</li>
+<li>异常激活特征（例如，比其他维度大 20 倍）保持在 FP16 中，但它们只占总权重的一小部分。如何识别异常值是基于经验的。</li>
+</ol>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/2ggKKqY1CZWvhqQEUyH21b"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/2ggKKqY1CZWvhqQEUyH21b" alt="LLM-int8.png" border="0" /></a></p>
+<p>图 4. <code>LLM.int8()</code> 的两种混合精度分解。 (图片来源：<a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">Dettmers et al. 2022</a>
+)</p>
+<h3 id="细粒度量化">细粒度量化<a hidden class="anchor" aria-hidden="true" href="#细粒度量化">#</a></h3>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/iXmJSG2druRcNbDdDgBkUE"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/iXmJSG2druRcNbDdDgBkUE" alt="quantization-granularity.png" border="0" /></a></p>
+<p>图 5. 不同粒度量化的比较。$d$ 是模型大小/隐藏状态维度，$h$ 是一个 MHSA (多头自注意力) 组件中的头数。</p>
+<p>简单地量化一层中的整个权重矩阵（&ldquo;每张量&rdquo; 或 &ldquo;每层&rdquo; 量化）实现最为简单，但不会导致良好的量化粒度。</p>
+<p><strong>Q-BERT</strong> (<a href="https://arxiv.org/abs/1909.05840" target="_blank" rel="noopener">Shen, Dong &amp; Ye, et al. 2020</a>
+) 对微调过的 BERT 模型应用了 <em>组内量化</em>，将 MHSA（多头自注意力）中 <em>每个头</em> 的单独矩阵 $W$ 视为一个组，然后应用基于 Hessian 的混合精度量化。</p>
+<p><em>每嵌入组（PEG）</em> 激活量化是由观察到的异常值只出现在 $d$ （隐藏状态/模型大小）维度中的少数几个维度上所激发的 (<a href="https://arxiv.org/abs/2109.12948" target="_blank" rel="noopener">Bondarenko et al. 2021</a>
+)。每嵌入运算相当耗费计算资源。相比之下，PEG 量化将激活张量沿嵌入维度分割成几个大小相等的组，同一组中的元素共享量化参数。为确保所有异常值被组合在一起，他们应用了基于范围的确定性排列嵌入维度，其中维度按其值范围排序。</p>
+<p><strong>ZeroQuant</strong> (<a href="https://arxiv.org/abs/2206.01861" target="_blank" rel="noopener">Yao et al. 2022</a>
+) 对权重使用 <em>组内量化</em>，与 Q-BERT 中的方式相同，对激活使用 <em>逐 Tkoen 量化</em>。为避免昂贵的量化和反量化计算，ZeroQuant 构建了定制的 <em>内核</em>，将量化操作与其前一个操作 <em>融合</em>。</p>
+<h3 id="量化的二阶信息">量化的二阶信息<a hidden class="anchor" aria-hidden="true" href="#量化的二阶信息">#</a></h3>
+<p>Q-BERT（<a href="https://arxiv.org/abs/1909.05840" target="_blank" rel="noopener">Shen, Dong &amp; Ye 等人，2020</a>
+）为其混合精度量化开发了 Hessian AWare Quantization（HAWQ）。其动机是具有较高 Hessian 系数（即，较大的顶部特征值）的参数对量化更为敏感，因此需要更高的精度。本质上，这是一种识别异常值的方法。</p>
+<p>从另一个角度来看，量化问题是一个优化问题。给定权重矩阵 $  \mathbf{W}  $ 和输入矩阵 $  \mathbf{X}  $，我们想要找到一个量化的权重矩阵 $  \hat{\mathbf{W}}  $ 来最小化 MSE：</p>
+<p>$$ \hat{\mathbf{W}}^* = \arg\min_{\hat{\mathbf{W}}} | \mathbf{W}\mathbf{X} - \hat{\mathbf{W}}\mathbf{X}| $$</p>
+<p><strong>GPTQ</strong>（<a href="https://arxiv.org/abs/2210.17323" target="_blank" rel="noopener">Frantar 等人，2022</a>
+）将权重矩阵 $  \mathbf{W}  $ 视为行向量的集合 $  \mathbf{w}  $，并对每行独立应用量化。GPTQ 迭代地量化更多的权重，这些权重是贪婪地选择的，以最小化量化误差。选定的权重更新有一个封闭形式的公式，利用 Hessian 矩阵。如果感兴趣，可以在论文和 OBQ（Optimal Brain Quantization；<a href="https://arxiv.org/abs/2208.11580" target="_blank" rel="noopener">Frantar &amp; Alistarh 2022</a>
+）方法中阅读更多详情。GPTQ 可以将 OPT-175B 中的权重位宽减少到 3 或 4 位，而不会有太多性能损失，但它只适用于模型权重，而不适用于激活。</p>
+<h3 id="异常值平滑">异常值平滑<a hidden class="anchor" aria-hidden="true" href="#异常值平滑">#</a></h3>
+<p>众所周知，在 transformer 模型中，激活的量化比权重的量化更为困难。<strong>SmoothQuant</strong>（<a href="https://arxiv.org/abs/2211.10438" target="_blank" rel="noopener">Xiao &amp; Lin，2022</a>
+）提出了一个聪明的解决方案，通过数学等效变换将异常特征从激活平滑到权重，然后对权重和激活（<code>W8A8</code>）都启用量化。因此，SmoothQuant 具有比混合精度量化更好的硬件效率。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vakonzWG3cRbhdRVLikwae"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vakonzWG3cRbhdRVLikwae" alt="SmoothQuant.png" border="0" /></a></p>
+<p>图 6. SmoothQuant 在离线状态下将尺度方差从激活迁移到权重，以减少激活量化的难度。得到的新权重和激活矩阵都易于量化。（图片来源：<a href="https://arxiv.org/abs/2211.10438" target="_blank" rel="noopener">Xiao &amp; Lin，2022</a>
+）</p>
+<p>考虑每通道平滑因子 $  \mathbf{s}  $，SmoothQuant 按照以下方式缩放权重：</p>
+<p>$ \mathbf{Y} = (\mathbf{X} \text{diag}(\mathbf{s})^{-1}) \cdot (\text{diag}(\mathbf{s})\mathbf{W}) = \hat{\mathbf{X}}\hat{\mathbf{W}} $</p>
+<p>平滑因子可以很容易地融入离线的先前层的参数中。超参数 $  \alpha  $ 控制我们将量化难度从激活迁移到权重的程度：$  \mathbf{s} = \max (| \mathbf{X}_j |)^\alpha / \max( | \mathbf{W}_j |)^{1-\alpha}  $。论文发现，对于许多实验中的 LLM，$  \alpha=0.5  $ 是一个甜蜜点。对于激活中具有更显著异常值的模型，可以调整 $  \alpha  $ 以使其更大。</p>
+<h2 id="量化感知训练qat">量化感知训练（QAT）<a hidden class="anchor" aria-hidden="true" href="#量化感知训练qat">#</a></h2>
+<p>量化感知训练将量化操作融入到预训练或精调过程中。它直接以低位表示形式学习模型权重，并以额外的训练时间和计算为代价，带来了更好的性能。</p>
+<p>最直接的方法是在量化后对模型进行<strong>精调</strong>，使用与预训练数据集相同或具有代表性的训练数据集。训练目标可以与预训练相同（例如，通用语言模型训练中的 NLL/MLM）或特定于我们关心的下游任务（例如，分类的交叉熵）。</p>
+<p>另一种方法是将全精度模型视为教师模型，将低精度模型视为学生模型，然后使用<strong>蒸馏</strong>损失优化低精度模型。蒸馏通常不需要使用原始数据集；例如，Wikipedia 数据集是一个不错的选择，甚至随机 Tkoen 也可以带来不错的性能提升。<em>逐层知识蒸馏</em>（<em>LKD</em>；<a href="https://arxiv.org/abs/2206.01861" target="_blank" rel="noopener">Yao 等，2022</a>
+）方法逐层量化网络，并使用其原始的、未量化的版本作为教师模型。在给定相同输入的情况下，LKD 最小化了层权重乘法和量化层权重乘法之间的 MSE。</p>
+<h1 id="剪枝">剪枝<a hidden class="anchor" aria-hidden="true" href="#剪枝">#</a></h1>
+<p>网络剪枝旨在通过修剪不重要的模型权重或连接来减小模型大小，同时保持模型容量。它可能需要或可能不需要重新训练。剪枝可以是<strong>非结构化</strong>的或<strong>结构化</strong>的。</p>
+<ul>
+<li><em>非结构化剪枝</em>允许丢弃任何权重或连接，因此它不保留原始网络架构。非结构化剪枝通常不适用于现代硬件，并且不会导致实际推理速度的提升。</li>
+<li><em>结构化剪枝</em>旨在保持密集矩阵乘法形式，其中某些元素为零。他们可能需要遵循某些模式限制以适应硬件内核支持。在这里，我们关注结构化剪枝以实现 Transformer 模型中的<em>高稀疏性</em>。</li>
+</ul>
+<p><span id="routine-workflow">构建剪枝网络的常规工作流程</span>包括三个步骤：</p>
+<ol>
+<li>训练密集网络直至收敛；</li>
+<li>剪枝网络以移除不需要的结构；</li>
+<li>可选地重新训练网络以使用新权重恢复性能。</li>
+</ol>
+<p>通过网络剪枝在密集模型中发现稀疏结构的想法，同时稀疏网络仍然可以保持相似的性能，是受<a href="https://lilianweng.github.io/posts/2019-03-14-overfit/#the-lottery-ticket-hypothesis" target="_blank" rel="noopener"><strong>彩票票据假设</strong></a>
+（<strong>LTH</strong>）的启发：一个随机初始化的、密集的、前馈网络包含一个子网络池，其中只有一个子集（一个稀疏网络）是*&ldquo;中奖票&rdquo;*，当它们单独训练时可以实现最优性能。</p>
+<h2 id="如何剪枝">如何剪枝？<a hidden class="anchor" aria-hidden="true" href="#如何剪枝">#</a></h2>
+<p><strong>幅度剪枝</strong> 是最简单但相当有效的剪枝方法 —— 会修剪绝对值最小的权重。实际上，一些研究（<a href="https://arxiv.org/abs/1902.09574" target="_blank" rel="noopener">Gale et al. 2019</a>
+）发现
+<em>简单的幅度剪枝方法可以获得与复杂剪枝方法相当或更好的结果</em>，例如变分丢弃
+（<a href="https://arxiv.org/abs/1701.05369" target="_blank" rel="noopener">Molchanov et al. 2017</a>
+）和 $ l_0 $
+正则化（<a href="https://arxiv.org/abs/1712.01312" target="_blank" rel="noopener">Louizos et al.
+2017</a>
+）。幅度剪枝易于应用于大型模型，并在多种超参数范围内取得了相当稳定的性能。</p>
+<p><a href="https://arxiv.org/abs/1710.01878" target="_blank" rel="noopener">Zhu &amp; Gupta (2017)</a>
+ 发现 <em>大型稀疏模型能够比其小型但密集的对应物取得更好的性能</em>。他们提出了 <strong>逐渐幅度剪枝
+(GMP)</strong> 算法，该算法逐渐增加网络的稀疏度。在每个训练步骤中，绝对值最小的权重被屏蔽为零，以实现所需的稀疏度水平 $ s $，并且在反向传播过程中，屏蔽的权重不会得到梯度更新。随着训练步骤的增加，所需的稀疏度水平 $ s $ 会增加。GMP 的过程对学习率计划敏感，该计划应高于密集网络训练中使用的学习率，但不能太高以防止收敛。</p>
+<p><strong>迭代剪枝</strong> (<a href="https://arxiv.org/abs/2003.02389" target="_blank" rel="noopener">Renda et al.
+2020</a>
+) 多次重复步骤 2（剪枝）和步骤 3（重新训练）：每次迭代只剪枝一小部分权重，并对模型进行重新训练。该过程重复，直到达到所需的稀疏度水平。</p>
+<h2 id="如何重新训练">如何重新训练？<a hidden class="anchor" aria-hidden="true" href="#如何重新训练">#</a></h2>
+<p>重新训练步骤可以是使用相同的预训练数据或其他特定任务数据集进行简单的微调。</p>
+<p><a href="https://lilianweng.github.io/posts/2019-03-14-overfit/#the-lottery-ticket-hypothesis" target="_blank" rel="noopener">彩票假说</a>
+ 提出了一种 <strong>权重回溯</strong> 重新训练技术：剪枝后，未剪枝的权重<em>重新初始化为训练早期的原始值</em>，然后按照相同的学习率计划进行重新训练。</p>
+<p><strong>学习率回溯</strong> (<a href="https://arxiv.org/abs/2003.02389" target="_blank" rel="noopener">Renda et al.
+2020</a>
+) 只将学习率重置为早期值，而未剪枝的权重自上次训练阶段结束以来保持不变。他们观察到（1）在所有测试场景中，权重回溯的重新训练优于微调的重新训练，以及（2）学习率回溯在所有测试场景中均匹配或优于权重回溯。</p>
+<h1 id="稀疏性">稀疏性<a hidden class="anchor" aria-hidden="true" href="#稀疏性">#</a></h1>
+<p>稀疏性是在保持模型推理计算效率的同时扩展模型容量的有效方式。在这里，我们考虑了转换器的两种稀疏性类型：</p>
+<ul>
+<li>稀疏化密集层，包括自注意力和 FFN 层。</li>
+<li>稀疏模型架构；即通过整合 Mixture-of-Experts (MoE) 组件。</li>
+</ul>
+<h2 id="通过剪枝实现的-nm-稀疏性">通过剪枝实现的 N:M 稀疏性<a hidden class="anchor" aria-hidden="true" href="#通过剪枝实现的-nm-稀疏性">#</a></h2>
+<p><strong>N:M 稀疏性</strong> 是一种与现代 GPU 硬件优化良好协作的结构化稀疏模式，在这种模式中，每 $M$ 个连续元素中的 $N$ 个元素是零。例如，Nvidia A100 GPU 的稀疏张量核心支持 2:4 稀疏性以实现更快的推理（<a href="https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf" target="_blank" rel="noopener">Nvidia 2020</a>
+）。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/orticnEhaygK7iBJ9Yjuhw"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/orticnEhaygK7iBJ9Yjuhw" alt="2-to-4-sparsity.png" border="0" /></a></p>
+<p>图 7. 2:4 结构化稀疏矩阵及其压缩表示。 (图片来源：<a href="https://developer.nvidia.com/blog/accelerating-inference-with-sparsity-using-ampere-and-tensorrt/" target="_blank" rel="noopener">Nvidia blog</a>
+)</p>
+<p>为了使密集神经网络遵循 N:M 结构化稀疏模式，<a href="https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf" target="_blank" rel="noopener">Nvidia (2020)</a>
+ 建议使用三步<a href="#routine-workflow">常规工作流</a>
+来训练剪枝网络：训练 &ndash;&gt; 剪枝以满足 2:4 稀疏性 &ndash;&gt; 重新训练。</p>
+<p>排列列可以在剪枝过程中提供更多选项，以保留大幅度的参数或满足特殊的限制，如 N:M 稀疏性（<a href="https://proceedings.neurips.cc/paper/2021/hash/6e8404c3b93a9527c8db241a1846599a-Abstract.html" target="_blank" rel="noopener">Pool &amp; Yu 2021</a>
+）。只要两个矩阵的配对轴以相同的顺序排列，矩阵乘法的结果就不会改变。例如，</p>
+<p>$ 1 $ 在自注意力模块中，如果在查询嵌入矩阵 $\mathbf{Q}$ 的轴 1 和键嵌入矩阵 $\mathbf{K}^\top$ 的轴 0 上应用相同的排列顺序，那么 $\mathbf{Q}\mathbf{K}^\top$ 的矩阵乘法的最终结果将保持不变。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/wP1xJbqY33voYXZfQUUnDD"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/wP1xJbqY33voYXZfQUUnDD" alt="permutation-QK.png" border="0" /></a></p>
+<p>图 8. 保持自注意力模块结果不变的 $\mathbf{Q}$（轴 1）和 $\mathbf{K}^\top$（轴 0）的相同排列示意图。</p>
+<p>$ 2 $ 在包含两个 MLP 层和一个 ReLU 非线性层的 FFN 层中，我们可以按相同的顺序排列第一个线性权重矩阵 $\mathbf{W}_1$（沿着轴 1）和第二个线性权重矩阵 $\mathbf{W}_2$（沿着轴 0）。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vo2twve8o2vzqEsgffehnq"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/vo2twve8o2vzqEsgffehnq" alt="permutation-QK.png" border="0" /></a></p>
+<p>图 9. 保持 FFN 层输出不变的 $\mathbf{W}_1$（轴 1）和 $\mathbf{W}_2$（轴 0）的相同排列示意图。为简单起见，省略了偏置项，但应在它们上也应用相同的排列。</p>
+<p>为了执行 N:M 结构化稀疏，让我们将一个矩阵的列分成多个包含 $M$ 列的片段（名为 &ldquo;stripe&rdquo;），我们可以轻松地观察到，每个条纹内的列的顺序和条纹的顺序对 N:M 稀疏限制没有影响。</p>
+<p><a href="https://proceedings.neurips.cc/paper/2021/hash/6e8404c3b93a9527c8db241a1846599a-Abstract.html" target="_blank" rel="noopener">Pool &amp; Yu (2021)</a>
+ 提出了一种迭代贪婪算法，以找到最大化 N:M 稀疏性的权重幅度的最优排列。所有通道对都被推测性地交换，只有导致幅度最大增加的交换被采纳，从而生成新的排列并结束单次迭代。贪婪算法可能只会找到局部最小值，因此他们引入了两种技术来逃脱局部最小值：</p>
+<ol>
+<li>有界回归：在实践中，两个随机通道被交换，最多交换固定次数。解决方案搜索仅限于一个通道交换的深度，以保持搜索空间宽而浅。</li>
+<li>狭窄、深度搜索：选择多个条纹并同时优化它们。</li>
+</ol>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/fM9nJVHoWPZYZUs99uD7HM"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/fM9nJVHoWPZYZUs99uD7HM" alt="N-to-M-sparsity-permutation-algo.png" border="0" /></a></p>
+<p>图 10. 寻找 N:M 稀疏性的最佳排列的算法，贪婪且迭代地进行。（图片来源：<a href="https://proceedings.neurips.cc/paper/2021/hash/6e8404c3b93a9527c8db241a1846599a-Abstract.html" target="_blank" rel="noopener">Pool &amp; Yu 2021</a>
+）</p>
+<p>如果网络在修剪之前进行排列，与在默认通道顺序中修剪网络相比，它可以获得更好的性能。</p>
+<p>为了从头开始训练具有 N:M 稀疏性的模型，<a href="https://arxiv.org/abs/2102.04010" target="_blank" rel="noopener">Zhou &amp; Ma, 等人 2021</a>
+ 扩展了 STE (Straight-Through Estimator；<a href="https://arxiv.org/abs/1308.3432" target="_blank" rel="noopener">Bengio 等人 2013</a>
+)，它通常用于模型量化中的反向传播更新，以便用于幅度修剪和稀疏参数更新。</p>
+<p>STE 计算相对于修剪网络 $ \widetilde{W} $ 的稠密参数的梯度 $ \partial \mathcal{L}/\partial \widetilde{W} $，并将其作为近似应用于稠密网络 $ W $：</p>
+<p>$$ W_{t+1} \gets W_t - \gamma \frac{\partial\mathcal{L}}{\partial\widetilde{W}} $$</p>
+<p>扩展版本，<strong>SR-STE</strong> (Sparse-refined STE)，通过以下方式更新稠密权重 $W$：</p>
+<p>$$ W_{t+1} \gets W_t - \gamma \frac{\partial\mathcal{L}}{\partial\widetilde{W}} + \lambda_W (\bar{\mathcal{E}} \odot W_t) $$</p>
+<p>其中 $\bar{\mathcal{E}}$ 是 $\widetilde{W}$ 的掩码矩阵，$\odot$ 是元素对应乘法。SR-STE 旨在通过（1）限制在 $\widetilde{W}_t$ 中修剪的权重值，并且（2）提升 $\widetilde{W}_t$ 中未修剪的权重，以防止二进制掩码发生较大变化。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/dMBDBBtN38y8aH8nCobd8G"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/dMBDBBtN38y8aH8nCobd8G" alt="SR-STE.png" border="0" /></a></p>
+<p>图 11. STE 和 SR-STE 的比较。$\odot$ 是元素对应乘法；$\otimes$ 是矩阵乘法。（图片来源：<a href="https://arxiv.org/abs/2102.04010" target="_blank" rel="noopener">Zhou &amp; Ma, 等人 2021</a>
+）</p>
+<p>与 STE 或 SR-STE 不同，<strong>Top-KAST</strong>（<a href="https://arxiv.org/abs/2106.03517" target="_blank" rel="noopener">Jayakumar 等人 2021</a>
+）方法可以在训练的前向和反向传播中保持恒定的稀疏性，但不需要具有稠密参数或稠密梯度的前向传播。</p>
+<p>在一个训练步骤 $ t $ 中，Top-KAST 进程如下：</p>
+<ol>
+<li><em>稀疏前向传播</em>：选择参数子集 $ A^t \subset \Theta $，其中每层的参数子集包含按幅度排列的前-$ K $ 参数，限制为前 $ D $-比例的权重。在时间 $ t $ 时，如果不在 $ A^t $ 中（活动权重），参数化 $ \alpha^t $ 的参数将被清零。</li>
+</ol>
+<p>$$ \alpha^t_i = \begin{cases} \theta^t_i &amp; \text{ if } i \in A^t = {i \mid \theta^t_i \in \text{TopK}(\theta^t, D) }\\ 0 &amp; \text{ otherwise} \end{cases} $$</p>
+<p>其中 $ \text{TopK}(\theta, x) $ 根据幅度从 $ \theta $ 中选择前 $ x $ 比例的权重。</p>
+<ol start="2">
+<li>
+<p><em>稀疏反向传播</em>：然后将梯度应用于较大的参数子集 $ B \subset \Theta $，其中 $ B $ 包含 $ (D+M) $-比例的权重，且 $ A \subset B $。更新较大比例的权重可以更有效地探索不同的修剪掩码，使得更可能在前 $ D $-比例的活动权重中引起排列。</p>
+<p>$$ \Delta_{\theta^t_i} = \begin{cases} -\eta \nabla_{\alpha_t} \mathcal{L}(y, x, \alpha^t)_i &amp; \text{ if } i\in B^t = {i \mid \theta^t_i \in \text{TopK}(\theta^t, D+M) } \\ 0 &amp; \text{ otherwise } \end{cases} $$</p>
+</li>
+</ol>
+<p>训练分为两个阶段，集合 $B \setminus A$ 中的额外坐标控制引入了多少探索。探索的数量预计会在训练过程中逐渐减少，掩码最终会稳定。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/t2ZyBVLHdorksweTT3zb97"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/t2ZyBVLHdorksweTT3zb97" alt="Top-KAST-stabilize.png" border="0" /></a></p>
+<p>图 12. Top-KAST的剪枝掩码随时间稳定。(图片来源：<a href="https://arxiv.org/abs/2106.03517" target="_blank" rel="noopener">Jayakumar等人，2021</a>
+)</p>
+<p>为了防止富者愈富现象，Top-KAST通过L2正则化损失来惩罚活动权重的幅度，以鼓励对新项目的更多探索。在$B \setminus A$中的参数比在$A$中的参数受到更多的惩罚，以在更新时提高选择标准，稳定掩码。</p>
+<div>
+<p>$$
+L_\text{penalty}(\alpha^t_i) = \begin{cases}
+|\theta^t_i| &amp; \text{ if } i \in A^t \
+|\theta^t_i| / D &amp; \text{ if } i \in B^t \setminus A^t \
+0 &amp; \text{ otherwise}
+\end{cases}
+$$</p>
+</div>
+<h2 id="稀疏化-transformer">稀疏化 Transformer<a hidden class="anchor" aria-hidden="true" href="#稀疏化-transformer">#</a></h2>
+<p><em>Scaling Transformer</em>（<a href="https://arxiv.org/abs/2111.12763" target="_blank" rel="noopener">Jaszczur等人，2021</a>
+）在 transformer 架构中稀疏化了自注意力和 FFN 层，实现了对单个样例推理的 37 倍加速。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/uWJo9VAyKJfuc223qTCjRA"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/uWJo9VAyKJfuc223qTCjRA" alt="scaling-transformer-speedup-table.png" border="0" /></a></p>
+<p>图 13. 在不同层应用稀疏化时，transformer 模型解码单个 Tkoen （未分批推理）的速度。（图片来源：<a href="https://arxiv.org/abs/2111.12763" target="_blank" rel="noopener">Jaszczur等人，2021</a>
+）</p>
+<p><strong>稀疏 FFN 层</strong>：每个 FFN 层包含 2 个 MLP 和一个 ReLU，在两者之间。由于 ReLU 会引入许多零，他们在激活上实现了固定结构，以在一个由 $N$ 个元素组成的块中仅强制一个非零值。稀疏模式是动态的，每个 Tkoen 都不同。</p>
+<div>
+<p>$$
+\begin{aligned}
+Y_\text{sparse} &amp;= \max(0, xW_1 + b_1) \odot \text{Controller}(x) \
+\text{SparseFFN}(x) &amp;= Y_\text{sparse} W_2 + b_2 \
+\text{Controller}(x) &amp;= \arg\max(\text{Reshape}(x C_1 C_2, (-1, N)))
+\end{aligned}
+$$</p>
+</div>
+<p>其中 $Y_\text{sparse}$ 中的每个激活对应于 $W_1$ 中的一列和 $W_2$ 中的一行。控制器被实现为低秩瓶颈密集层，$C_1 \in \mathbb{R}^{d_\text{model} \times d_\text{lowrank}}, C_2 \in \mathbb{R}^{d_\text{lowrank} \times d_\text{ff}}$，且 $d_\text{lowrank} = d_\text{model} / N$。它在推理时使用 $\arg\max$ 来选择哪些列应该为非零，并在训练期间使用 Gumbel-softmax 技巧（<a href="https://arxiv.org/abs/1611.01144" target="_blank" rel="noopener">Jang等人，2016</a>
+）。由于我们可以在加载 FFN 权重矩阵之前计算 $\text{Controller}(x)$，我们知道哪些列将被清零，因此选择 <em>不加载</em> 它们以加速推理。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/5f5yuCUa7sHpwT8y2svbr1"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/5f5yuCUa7sHpwT8y2svbr1" alt="sparse-FFN.png" border="0" /></a></p>
+<p>图 14. (a) 稀疏 FFN 层；红色列没有加载到内存中，以便更快地推理。 (b) 1:4 稀疏度的稀疏 FFN 控制器。（图片来源：<a href="https://arxiv.org/abs/2111.12763" target="_blank" rel="noopener">Jaszczur等人，2021</a>
+）
+<em>Lilian的附注</em>：论文中的图 (a) 描述实际上是 $Y_\text{sparse} = \max\big(0, (xW_1 + b_1) \odot \text{Controller}(x)\big)$，但这不会改变结果。</p>
+<p><strong>稀疏 QKV（注意力）层</strong>：在注意力层中，维数 $d_\text{model}$ 被划分为 $S$ 个模块，每个模块的大小为 $M=d_\text{model} /S$。为了确保每个细分都能访问嵌入的任何部分，Scaling Transformer 引入了一个乘法层（即，乘法层按元素方式乘以来自多个神经网络层的输入），它可以表示任意排列，但参数少于密集层。</p>
+<p>对于输入向量 $x \in \mathbb{R}^{d_\text{model}}$，乘法层输出 $y \in \mathbb{R}^{S \times M}$：</p>
+<div>
+<p>$$ y_{s,m} = \sum_i x_i D_{i,s} E_{i,m} \quad\text{where }D \in
+\mathbb{R}^{d_\text{model} \times S}, D \in
+\mathbb{R}^{d_\text{model} \times M} $$</p>
+</div>
+<p>乘法层的输出是一个大小为 $\in \mathbb{R}^{\text{batch size}\times \text{length} \times S \times M}$ 的张量。然后它通过一个二维卷积层进行处理，其中 $\text{length}$ 和 $S$ 被视为图像的高度和宽度。这样的卷积层进一步减少了注意力层的参数数量和计算时间。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/ex9JGFn55gNdmEZLMQAR4z"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/ex9JGFn55gNdmEZLMQAR4z" alt="sparse-QKV.png" border="0" /></a></p>
+<p>图 15. (a) 引入了一个乘法层，以使分区能够访问嵌入的任何部分。 (b) 乘法密集层和 2-D 卷积层的组合减少了注意力层的参数数量和计算时间。（图片来源：<a href="https://arxiv.org/abs/2111.12763" target="_blank" rel="noopener">Jaszczur 等，2021</a>
+）</p>
+<p>为了更好地处理长序列，Scaling Transformer 进一步配备了来自 <a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#locality-sensitive-hashing-reformer" target="_blank" rel="noopener">Reformer</a>
+ 的 LSH（局部敏感哈希）注意力 (<a href="https://arxiv.org/abs/2001.04451" target="_blank" rel="noopener">Kitaev, et al. 2020</a>
+) 和 FFN 块递归，从而产生了 <em>Terraformer</em>。</p>
+<h2 id="mixture-of-experts">Mixture-of-Experts<a hidden class="anchor" aria-hidden="true" href="#mixture-of-experts">#</a></h2>
+<p>Mixture-of-experts（MoE）模型依赖于一组“专家”网络，每个示例只激活网络的一个子集以获得预测。该想法可以追溯到 1990 年代 (<a href="https://www.cs.toronto.edu/~hinton/absps/jjnh91.pdf" target="_blank" rel="noopener">Jacobs et al. 1991</a>
+)，与集成方法有很强的关联。有关如何将 MoE 模块整合到 transformer 中的详细信息，请查看我之前关于大型模型训练技术的 <a href="https://lilianweng.github.io/posts/2021-09-25-train-large/" target="_blank" rel="noopener">博文</a>
+ 和 MoE 的调查论文 <a href="https://arxiv.org/abs/2209.01667" target="_blank" rel="noopener">Fedus et al. 2022</a>
+。</p>
+<p>借助 MoE 架构，在解码时只使用部分参数，从而节省了推理成本。每个专家的容量可以通过超参数，容量因子 $C$，进行调整，专家容量定义为：</p>
+<div>
+<p>$$ \text{Expert capacity} = \text{round}(C \cdot k \cdot \frac{\text{total # tokens in one batch}}{\text{# experts}}) $$</p>
+</div>
+<p>其中每个 Tkoen 选择 top-$k$ 专家。较大的 $C$ 导致更高的专家容量和改善的性能，但计算成本更高。当 $C&gt;1$ 时，会添加一个松散容量；否则，当 $C&lt;1$ 时，路由网络需要忽略一些 Tkoen 。</p>
+<h3 id="路由策略改进">路由策略改进<a hidden class="anchor" aria-hidden="true" href="#路由策略改进">#</a></h3>
+<p>MoE 层具有一个路由网络，为每个输入 Tkoen 分配一组专家的子集。在原始的 MoE 模型中，路由策略是按照它们在自然顺序中出现的顺序，将每个 Tkoen 路由到不同的首选专家。如果一个 Tkoen 被路由到已达到其容量的专家，则该 Tkoen 将被标记为 <em>“溢出”并跳过</em>。</p>
+<p><strong>V-MoE</strong>（Vision MoE；<a href="https://arxiv.org/abs/2106.05974" target="_blank" rel="noopener">Riquelme et al. 2021</a>
+）将 MoE 层添加到 ViT（Vision Transformer）。它与先前的 SoTA 性能相匹配，但仅需要 <em>一半</em> 的推理计算。V-MoE 可以扩展到 150 亿参数。他们的实验使用 $k=2$，32 个专家和 every-2 专家布置（意味着 MoEs 每隔一层放置）。</p>
+<p>由于每个专家的容量有限，如果它们在预定义的序列顺序中出现太晚（例如，句子中的单词顺序或图像补丁的顺序），一些重要且信息丰富的 Tkoen 可能必须被丢弃。为了避免原始路由方案中的这种缺点，V-MoE 采用 <strong>BPR（Batch Priority Routing，批量优先路由）</strong> 首先为具有高优先级得分的 Tkoen 分配专家。BPR 在专家分配之前为每个 Tkoen 计算优先级得分（最大值或 top-$k$ 路由器得分的总和），并相应地改变 Tkoen 的顺序。这确保了专家容量缓冲区首先会用关键 Tkoen 填充。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/5cw7epCDrqNgh2buFz7kni"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/5cw7epCDrqNgh2buFz7kni" alt="BPR.png" border="0" /></a></p>
+<p>图 16. 如何根据优先级分数丢弃图像块当 $C &lt; 1$ 时（图片来源：<a href="https://arxiv.org/abs/2106.05974" target="_blank" rel="noopener">Riquelme 等人 2021</a>
+）</p>
+<p>BPR 在 $C \leq 0.5$ 时的表现比普通的路由要好得多，在这个点模型开始丢弃大量的令牌。它使模型即使在相当低的容量下也能与密集网络竞争。</p>
+<p>在探究如何解释图像类-专家关联时，他们观察到早期的 MoE 层更为通用，而后期的 MoE 层可能会针对少数图像类别而专门化。</p>
+<p><strong>任务 MoE</strong> （Task-level Mixture-of-Experts；<a href="https://arxiv.org/abs/2110.03742" target="_blank" rel="noopener">Kudugunta 等人 2021</a>
+）将任务信息考虑在内，并在 <em>任务</em> 级别而不是单词或令牌级别上对令牌进行路由，以进行机器翻译。他们以 MNMT（多语言神经机器翻译）为例，并根据目标语言或语言对对翻译任务进行分组。</p>
+<p>令牌级别的路由是动态的，每个令牌的路由决策是分离的。因此，在推理时，服务器需要预加载所有的专家。相比之下，任务级路由在给定固定任务时是 <em>静态</em> 的，因此一个任务的推理服务器只需要预加载 $k$ 个专家（假设采用 top-$k$ 路由）。根据他们的实验，与密集模型基线相比，任务 MoE 可以实现类似的性能增益，具有 2.6 倍的最高吞吐量和解码器大小的 1.6%。</p>
+<p>任务级 MoE 的本质是根据预定义的 <em>启发式方法</em> 对任务分布进行分类，并将这种人类知识融入到路由器中。当这种启发式方法不存在时（例如，考虑一项通用的句子延续任务），使用任务 MoE 的方法并不明确。</p>
+<p><strong>PR-MoE</strong> （Pyramid residual MoE；<a href="https://arxiv.org/abs/2201.05596" target="_blank" rel="noopener">Rajbhandari 等人 2022</a>
+）使每个令牌通过一个固定的 MLP 和一个选定的专家。由于观察到在后期层的 MoE 更为有益，PR-MoE 在后期层采用了更多的专家。DeepSpeed 库实现了灵活的多专家、多数据并行性，以便使用不同数量的专家跨层训练 PR-MoE。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/3dCANBapVQTbhUfHiWnWqi"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/3dCANBapVQTbhUfHiWnWqi" alt="PR-MoE.png" border="0" /></a></p>
+<p>图 17. 与标准 MoE 相比，PR-MoE 架构的示意图（图片来源：<a href="https://arxiv.org/abs/2201.05596" target="_blank" rel="noopener">Rajbhandari 等人 2022</a>
+）</p>
+<h3 id="内核改进">内核改进<a hidden class="anchor" aria-hidden="true" href="#内核改进">#</a></h3>
+<p>专家网络可以托管在不同的设备上。但是，当 GPU 的数量增加时，每个 GPU 的专家数量减少，而专家之间的通信（“全对全”）变得更为昂贵。大量 GPU 之间的专家“全对全”通信依赖于 NCCL 的 P2P API，但在大规模时无法饱和高速链接（例如 NVLink，HDR InfiniBand）的带宽，因为随着更多节点的使用，单个块变得更小。现有的全对全算法在大规模、小工作负载下表现不佳。有多种内核改进可以实现更高效的 MoE 计算，例如使全对全通信更便宜/更快。</p>
+<p><em>DeepSpeed</em> 库（<a href="https://arxiv.org/abs/2201.05596" target="_blank" rel="noopener">Rajbhandari 等人 2022</a>
+）和 TUTEL（<a href="https://arxiv.org/abs/2206.03382" target="_blank" rel="noopener">Hwang 等人 2022</a>
+）实现了基于树的<strong>分层全对全</strong>算法，该算法首先运行节点内全对全，然后运行节点间全对全。它将通信跳数从 $O(G)$ 减少到 $O(G_\text{node} + G / G_\text{node})$，其中 $G$ 是 GPU 节点的总数，$G_\text{node}$ 是每个节点的 GPU 核心数。尽管此类实现中的通信量加倍，但它在小批量的大规模时实现了更好的缩放，因为在批量大小小时，瓶颈在延迟而不是通信带宽上。</p>
+<p><em>DynaMoE</em> （<a href="https://arxiv.org/abs/2205.01848" target="_blank" rel="noopener">Kossmann 等人 2022</a>
+）使用<strong>动态重新编译</strong>来适应专家之间的动态工作负载。<code>RECOMPILE</code> 机制从头开始编译计算图，并仅在需要时重新分配资源。它衡量了分配给每个专家的样本数量，并动态调整其容量因子 $C$，以减少运行时的内存和计算需求。基于观察到样本-专家分配在训练早期收敛的情况，引入了<em>样本分配缓存</em>，然后使用 <code>RECOMPILE</code> 来消除门控网络和专家之间的依赖性。</p>
+<h1 id="架构优化">架构优化<a hidden class="anchor" aria-hidden="true" href="#架构优化">#</a></h1>
+<p>这篇综述论文 <em>高效 Transformers</em>（<a href="https://arxiv.org/abs/2009.06732" target="_blank" rel="noopener">Tay et al. 2020</a>
+）回顾了一系列新的 transformer 架构，它们为了更好的 <em>计算和内存效率</em> 而进行了改进。强烈推荐阅读。您也可以查看我的文章<a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/" target="_blank" rel="noopener">“Transformer Family Version 2.0”</a>
+，以深入了解包括降低模型运行成本的 transformer 架构的多方面改进。</p>
+<p><a href="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/qf7n5pveXWHKLknnScR3aD"><img src="https://static.aiwriter.net/2utuxsJh4CXi46hzmc3uZ3/eCGRNDqLB4Yx2koLVkLT26/qf7n5pveXWHKLknnScR3aD" alt="efficient-transformer.png" border="0" /></a></p>
+<p>图 18. 高效 transformer 模型的分类。<br>
+(图片来源：<a href="https://arxiv.org/abs/2009.06732" target="_blank" rel="noopener">Tay et al. 2020</a>
+)</p>
+<p>由于自注意机制具有二次时间和内存复杂度，这是提高 transformer 解码效率的主要瓶颈，所有的高效 transformer 模型都在原本密集的注意层上应用了某种稀疏形式。这里只列举了一个高层次的概述，一些内容源自 <a href="https://arxiv.org/abs/2009.06732" target="_blank" rel="noopener">Tay et al. 2020</a>
+。</p>
+<h2 id="稀疏注意模式">稀疏注意模式<a hidden class="anchor" aria-hidden="true" href="#稀疏注意模式">#</a></h2>
+<ol>
+<li>
+<p><em>固定模式</em> 限制了注意矩阵的视野，使用预定义的固定模式。</p>
+<ul>
+<li>将输入序列划分为固定的块，例如 <a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/##strided-context" target="_blank" rel="noopener">Blockwise Attention</a>
+；</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/##fixed-local-context" target="_blank" rel="noopener">Image Transformer</a>
+ 使用局部注意；</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/##strided-context" target="_blank" rel="noopener">Sparse Transformer</a>
+ 使用跨步注意模式。</li>
+</ul>
+</li>
+<li>
+<p><em>组合模式</em> 学习对输入标记进行排序 / 聚类 - 在保持固定模式的效率优势的同时，实现了对序列的更优全局视图。</p>
+<ul>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#sparse-attention-matrix-factorization-sparse-transformers" target="_blank" rel="noopener">Sparse Transformer</a>
+ 结合了跨步和局部注意；</li>
+<li>对于一个高维输入张量，<a href="https://arxiv.org/abs/1912.12180" target="_blank" rel="noopener">Axial Transformer</a>
+ 不是对输入的扁平化版本应用注意力，而是沿着输入张量的单个轴应用多个注意力；</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#combination-of-local-and-global-context" target="_blank" rel="noopener">ETC，Longformer 和 Big Bird</a>
+ 结合了局部和全局上下文，以及跨步或随机注意。</li>
+</ul>
+</li>
+<li>
+<p><em>可学习模式</em> 通过学习确定最优的注意模式。</p>
+<ul>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#content-based-attention" target="_blank" rel="noopener">Reformer</a>
+ 根据基于哈希的相似性（LSH）将标记聚集在一起；</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#content-based-attention" target="_blank" rel="noopener">Routing Transformer</a>
+ 对标记执行 $k$-均值聚类；</li>
+<li><a href="https://arxiv.org/abs/2002.11296" target="_blank" rel="noopener">Sinkhorn Sorting Network</a>
+ 学习对输入序列的块进行排序。</li>
+</ul>
+</li>
+</ol>
+<h2 id="循环机制">循环机制<a hidden class="anchor" aria-hidden="true" href="#循环机制">#</a></h2>
+<p>循环机制通过循环连接多个块 / 段。</p>
+<ul>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#context-memory" target="_blank" rel="noopener">Transformer-XL</a>
+
+通过在段之间重用隐藏状态来利用更长的上下文。</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#make-it-recurrent" target="_blank" rel="noopener">通用 Transformer</a>
+
+将自我注意力与 RNN 中的循环机制相结合。</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#context-memory" target="_blank" rel="noopener">压缩 Transformer</a>
+
+是 Transformer-XL 的扩展，具有额外的内存，包含一组用于过去激活的内存插槽和用于压缩激活的压缩内存插槽。每当模型接受新的输入段时，主内存中最旧的激活将移至压缩内存，其中应用了压缩函数。</li>
+</ul>
+<h2 id="节省内存设计">节省内存设计<a hidden class="anchor" aria-hidden="true" href="#节省内存设计">#</a></h2>
+<p>节省内存设计指的是为了减少内存使用而对架构进行的修改。</p>
+<ul>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#low-rank-attention" target="_blank" rel="noopener">Linformer</a>
+
+将 keys 和 values 的长度维度投影到低维表示 ($N \to k$)，从而将内存复杂度从 $N \times N$ 降低到 $N \times k$。</li>
+<li><a href="https://arxiv.org/abs/1911.02150" target="_blank" rel="noopener">Shazeer (2019)</a>
+ 提出了 <em>多查询注意力</em>，该注意力在不同的注意力 &ldquo;头&rdquo; 之间共享 keys 和 values，大大减少了这些张量的大小和内存成本。</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#low-rank-attention" target="_blank" rel="noopener">随机特征注意力和 Performer</a>
+
+使用 <a href="%28https://lilianweng.github.io/posts/2022-09-08-ntk/#kernel--kernel-methods%29">核方法</a>
+
+以实现自注意机制的更便宜的数学格式。</li>
+</ul>
+<h2 id="自适应注意力">自适应注意力<a hidden class="anchor" aria-hidden="true" href="#自适应注意力">#</a></h2>
+<p><em>自适应注意力</em> 使模型能够学习最佳的注意力跨度，或者决定何时对不同的输入令牌进行提前退出。</p>
+<ul>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#adaptive-attention-span" target="_blank" rel="noopener">自适应注意力跨度</a>
+
+通过在令牌和其他 keys 之间的软掩码，训练模型学习每个令牌每个头的最佳注意力跨度。</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#make-it-recurrent" target="_blank" rel="noopener">通用 Transformer</a>
+
+结合了循环机制，并使用 <a href="https://lilianweng.github.io/posts/2020-04-07-the-transformer-family/#adaptive-computation-time-act" target="_blank" rel="noopener">ACT（自适应计算时间）</a>
+
+来动态决定循环步骤的数量。</li>
+<li><a href="https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/#depth-adaptive-transformer" target="_blank" rel="noopener">深度自适应 Transformer 和 CALM</a>
+
+学习何时使用一些信心度量来为每个令牌提前退出计算层，以实现良好的性能 - 效率权衡。</li>
+</ul>
+<h1 id="citation">Citation<a hidden class="anchor" aria-hidden="true" href="#citation">#</a></h1>
+<p>Cited as:</p>
+<blockquote>
+<p>Weng, Lilian. (Jan 2023). Large Transformer Model Inference
+Optimization. Lil&rsquo;Log.
+<a href="https://lilianweng.github.io/posts/2023-01-10-inference-optimization/" target="_blank" rel="noopener">https://lilianweng.github.io/posts/2023-01-10-inference-optimization/</a>
+.</p>
+</blockquote>
+<p>Or</p>
+<div class="highlight" tabindex="0"><div style="color:#e5e5e5;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">
+<table style="border-spacing:0;padding:0;margin:0;border:0;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="color:#e5e5e5;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">1
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">2
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">3
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">4
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">5
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">6
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">7
+</span><span style="white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#727272">8
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="color:#e5e5e5;background-color:#000;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-fallback" data-lang="fallback"><span style="display:flex;"><span>@article{weng2023inference,
+</span></span><span style="display:flex;"><span>  title   = &#34;Large Transformer Model Inference Optimization&#34;,
+</span></span><span style="display:flex;"><span>  author  = &#34;Weng, Lilian&#34;,
+</span></span><span style="display:flex;"><span>  journal = &#34;Lil&#39;Log&#34;,
+</span></span><span style="display:flex;"><span>  year    = &#34;2023&#34;,
+</span></span><span style="display:flex;"><span>  month   = &#34;Jan&#34;,
+</span></span><span style="display:flex;"><span>  url     = &#34;https://lilianweng.github.io/posts/2023-01-10-inference-optimization/&#34;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h1 id="references">References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h1>
+<p>[1] Bondarenko et al. <a href="https://arxiv.org/abs/2109.12948" target="_blank" rel="noopener">&ldquo;Understanding and overcoming the challenges of
+efficient transformer quantization&rdquo;</a>
+
+ACL 2021.</p>
+<p>[2] Dettmers et al. <a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">&ldquo;LLM.int8(): 8-bit Matrix Multiplication for
+Transformers at Scale&rdquo;</a>
+ NeuriPS 2022</p>
+<p>[3] Zadeh et al. <a href="https://arxiv.org/abs/2005.03842" target="_blank" rel="noopener">&ldquo;Gobo: Quantizing attention-based NLP models for low
+latency and energy efficient
+inference.&quot;</a>
+ MICRO 2020</p>
+<p>[4] Shen, Dong &amp; Ye, et al. <a href="https://arxiv.org/abs/1909.05840" target="_blank" rel="noopener">&ldquo;Q-BERT: Hessian based ultra low
+precision quantization of BERT&rdquo;</a>
+ AAAI
+2020.</p>
+<p>[5] Yao et al. <a href="https://arxiv.org/abs/2206.01861" target="_blank" rel="noopener">&ldquo;ZeroQuant: Efficient and affordable post-training
+quantization for large-scale
+transformers&rdquo;</a>
+ arXiv preprint
+arXiv:2206.01861 (2022).</p>
+<p>[6] Frantar et al. <a href="https://arxiv.org/abs/2210.17323" target="_blank" rel="noopener">&ldquo;GPTQ: Accurate Quantization for Generative
+Pre-trained Transformers&rdquo;</a>
+ arXiv
+preprint arXiv:2210.17323 (2022).</p>
+<p>[7] Xiao &amp; Lin <a href="https://arxiv.org/abs/2211.10438" target="_blank" rel="noopener">&ldquo;SmoothQuant: Accelerated sparse neural training: A
+provable and efficient method to find N:M transposable
+masks.&quot;</a>
+ arXiv preprint
+arXiv:2211.10438 (2022). |
+<a href="https://github.com/mit-han-lab/smoothquant" target="_blank" rel="noopener">code</a>
+</p>
+<p>[8] Pool &amp; Yu. <a href="https://proceedings.neurips.cc/paper/2021/hash/6e8404c3b93a9527c8db241a1846599a-Abstract.html" target="_blank" rel="noopener">&ldquo;Channel Permutations for N:M
+Sparsity.&quot;</a>
+
+NeuriPS 2021. |
+<a href="https://github.com/NVIDIA/apex/tree/master/apex/contrib/sparsity" target="_blank" rel="noopener">code</a>
+</p>
+<p>[9] Zhou &amp; Ma, et al. <a href="https://arxiv.org/abs/2102.04010" target="_blank" rel="noopener">&ldquo;Learning N:M fine-grained structured sparse
+neural networks from scratch.&quot;</a>
+ arXiv
+preprint arXiv:2102.04010 (2021).</p>
+<p>[10] Jayakumar et al. <a href="https://arxiv.org/abs/2106.03517" target="_blank" rel="noopener">&ldquo;Top-KAST: Top-K Always Sparse
+Training.&quot;</a>
+ NeuriPS 2020.</p>
+<p>[11] Nvidia. <a href="https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf" target="_blank" rel="noopener">&ldquo;Nvidia A100 tensor core GPU
+architecture.&quot;</a>
+
+2020.</p>
+<p>[12] Gale, Elsen &amp; Hooker <a href="https://arxiv.org/abs/1902.09574" target="_blank" rel="noopener">&ldquo;The State of Sparsity in Deep Neural
+Networks.&quot;</a>
+ arXiv preprint
+arXiv:1902.09574 (2019).</p>
+<p>[13] Zhu &amp; Gupta. <a href="https://arxiv.org/abs/1710.01878" target="_blank" rel="noopener">&ldquo;To Prune, or Not to Prune: Exploring the Efficacy
+of Pruning for Model Compression.&quot;</a>
+
+arXiv preprint arXiv:1710.01878 (2017).</p>
+<p>[14] Renda et al. <a href="https://arxiv.org/abs/2003.02389" target="_blank" rel="noopener">&ldquo;Comparing rewinding and fine-tuning in neural
+network pruning.&quot;</a>
+ arXiv preprint
+arXiv:2003.02389 (2020).</p>
+<p>[15] Zhou &amp; Ma, et al. <a href="https://arxiv.org/abs/2102.04010" target="_blank" rel="noopener">&ldquo;Learning N:M fine-grained structured sparse
+neural networks from scratch.&quot;</a>
+ arXiv
+preprint arXiv:2102.04010 (2021).</p>
+<p>[16] Pool &amp; Yu. <a href="https://proceedings.neurips.cc/paper/2021/hash/6e8404c3b93a9527c8db241a1846599a-Abstract.html" target="_blank" rel="noopener">&ldquo;Channel Permutations for N:M
+Sparsity.&quot;</a>
+
+NeuriPS 2021. |
+<a href="https://github.com/NVIDIA/apex/tree/master/apex/contrib/sparsity" target="_blank" rel="noopener">code</a>
+</p>
+<p>[17] Jaszczur et al. <a href="https://arxiv.org/abs/2111.12763" target="_blank" rel="noopener">&ldquo;Sparse is Enough in Scaling
+Transformers.&quot;</a>
+ NeuriPS 2021.</p>
+<p>[18] Mishra et al. <a href="https://arxiv.org/abs/2010.03954" target="_blank" rel="noopener">&ldquo;An Survey of Neural Network
+Compression.&quot;</a>
+ arXiv preprint
+arXiv:1710.09282 (2017).</p>
+<p>[19] Fedus et al. <a href="https://arxiv.org/abs/2209.01667" target="_blank" rel="noopener">&ldquo;A Review of Sparse Expert Models in Deep
+Learning.&quot;</a>
+ arXiv preprint
+arXiv:2209.01667 (2022)..</p>
+<p>[20] Riquelme et al. <a href="https://arxiv.org/abs/2106.05974" target="_blank" rel="noopener">&ldquo;Scaling vision with sparse mixture of
+experts.&quot;</a>
+ NeuriPS 2021.</p>
+<p>[21] Kudugunta et al. <a href="https://arxiv.org/abs/2110.03742" target="_blank" rel="noopener">&ldquo;Beyond Distillation: Task-level
+Mixture-of-Experts for Efficient
+Inference.&quot;</a>
+ arXiv preprint
+arXiv:2110.03742 (2021).</p>
+<p>[22] Rajbhandari et al. <a href="https://arxiv.org/abs/2201.05596" target="_blank" rel="noopener">&ldquo;DeepSpeed-MoE: Advancing mixture-of-experts
+inference and training to power next-generation ai
+scale.&quot;</a>
+ arXiv preprint
+arXiv:2201.05596 (2022).</p>
+<p>[23] Kossmann et al. <a href="https://arxiv.org/abs/2205.01848" target="_blank" rel="noopener">&ldquo;Optimizing mixture of experts using dynamic
+recompilations.&quot;</a>
+ arXiv preprint
+arXiv:2205.01848 (2022).</p>
+<p>[24] Hwang et al. <a href="https://arxiv.org/abs/2206.03382" target="_blank" rel="noopener">&ldquo;Tutel: Adaptive mixture-of-experts at
+scale.&quot;</a>
+ arXiv preprint
+arXiv:2206.03382 (2022). | <a href="https://github.com/microsoft/tutel" target="_blank" rel="noopener">code</a>
+</p>
+<p>[25] Noam Shazeer. <a href="https://arxiv.org/abs/1911.02150" target="_blank" rel="noopener">&ldquo;Fast Transformer Decoding: One Write-Head is All
+You Need.&quot;</a>
+ arXiv preprint
+arXiv:1911.02150 (2019).</p>
+<p>[26] Tay et al. <a href="https://arxiv.org/abs/2009.06732" target="_blank" rel="noopener">&ldquo;Efficient Transformers: A
+Survey.&quot;</a>
+ ACM Computing Surveys 55.6
+(2022): 1-28.</p>
+<p>[27] Pope et al. <a href="https://arxiv.org/abs/2211.05102" target="_blank" rel="noopener">&ldquo;Efficiently Scaling Transformer
+Inference.&quot;</a>
+ arXiv preprint
+arXiv:2211.05102 (2022).</p>
+<p>[28] Frankle &amp; Carbin. <a href="https://arxiv.org/abs/1803.03635" target="_blank" rel="noopener">&ldquo;The Lottery Ticket Hypothesis: Finding
+Sparse, Trainable Neural Networks&rdquo;</a>
+
+ICLR 2019.</p>
+<p>[29] Elabyad et al. <a href="https://arxiv.org/abs/1910.10073" target="_blank" rel="noopener">&ldquo;Depth-Adaptive
+Transformer&rdquo;</a>
+ ICLR 2020.</p>
+<p>[30] Schuster et al. <a href="https://arxiv.org/abs/2207.07061" target="_blank" rel="noopener">&ldquo;Confident Adaptive Language
+Modeling&rdquo;</a>
+ arXiv preprint
+arXiv:2207.07061 (2022).</p>
+<p>[31] Gou et al.
+<a href="https://arxiv.org/abs/2006.05525" target="_blank" rel="noopener">&ldquo;https://arxiv.org/abs/2006.05525&rdquo;</a>
+
+arXiv preprint arXiv:2006.05525 (2020).</p>
+<p>[32] Hinton et al. <a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">&ldquo;Distilling the Knowledge in a Neural
+Network&rdquo;</a>
+ NIPS 2014.</p>
+<p>[33] Sanh et al. <a href="https://arxiv.org/abs/1910.01108" target="_blank" rel="noopener">&ldquo;DistilBERT, a distilled version of BERT: smaller,
+faster, cheaper and lighter&rdquo;</a>
+ Workshop
+on Energy Efficient Machine Learning and Cognitive Computing @ NeuriPS
+2019.</p>
+<ul>
+<li><a href="https://lilianweng.github.io/tags/language-model/" target="_blank" rel="noopener">language-model</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/long-read/" target="_blank" rel="noopener">long-read</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/architecture/" target="_blank" rel="noopener">architecture</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/attention/" target="_blank" rel="noopener">attention</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/transformer/" target="_blank" rel="noopener">transformer</a>
+</li>
+<li><a href="https://lilianweng.github.io/tags/foundation/" target="_blank" rel="noopener">foundation</a>
+</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://awyugan.github.io/tags/language-model/">language-model</a></li>
+      <li><a href="https://awyugan.github.io/tags/long-read/">long-read&#34;</a></li>
+      <li><a href="https://awyugan.github.io/tags/architecture/">architecture</a></li>
+      <li><a href="https://awyugan.github.io/tags/attention/">attention</a></li>
+      <li><a href="https://awyugan.github.io/tags/transformer/">transformer</a></li>
+      <li><a href="https://awyugan.github.io/tags/foundation/">foundation</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="https://awyugan.github.io/2023/10/16/%E6%8A%80%E6%9C%AF%E4%B9%90%E8%A7%82%E4%B8%BB%E4%B9%89%E5%AE%A3%E8%A8%80%E8%AF%91/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>技术乐观主义宣言【译】</span>
+  </a>
+  <a class="next" href="https://awyugan.github.io/2023/10/06/%E8%AF%91%E5%A6%82%E4%BD%95%E5%9C%A8%E5%A4%9A-gpu-%E4%B8%8A%E8%AE%AD%E7%BB%83%E7%9C%9F%E6%AD%A3%E7%9A%84%E5%A4%A7%E5%9E%8B%E6%A8%A1%E5%9E%8B-lillog/">
+    <span class="title">Next »</span>
+    <br>
+    <span>【译】如何在多 GPU 上训练真正的大型模型？ | Lil&#39;Log</span>
+  </a>
+</nav>
+
+
+<ul class="share-buttons">
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on x"
+            href="https://x.com/intent/tweet/?text=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f&amp;hashtags=language-model%2clong-read%22%2carchitecture%2cattention%2ctransformer%2cfoundation">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M512 62.554 L 512 449.446 C 512 483.97 483.97 512 449.446 512 L 62.554 512 C 28.03 512 0 483.97 0 449.446 L 0 62.554 C 0 28.03 28.029 0 62.554 0 L 449.446 0 C 483.971 0 512 28.03 512 62.554 Z M 269.951 190.75 L 182.567 75.216 L 56 75.216 L 207.216 272.95 L 63.9 436.783 L 125.266 436.783 L 235.9 310.383 L 332.567 436.783 L 456 436.783 L 298.367 228.367 L 432.367 75.216 L 371.033 75.216 Z M 127.633 110 L 164.101 110 L 383.481 400.065 L 349.5 400.065 Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on linkedin"
+            href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f&amp;title=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log&amp;summary=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log&amp;source=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-288.985,423.278l0,-225.717l-75.04,0l0,225.717l75.04,0Zm270.539,0l0,-129.439c0,-69.333 -37.018,-101.586 -86.381,-101.586c-39.804,0 -57.634,21.891 -67.617,37.266l0,-31.958l-75.021,0c0.995,21.181 0,225.717 0,225.717l75.02,0l0,-126.056c0,-6.748 0.486,-13.492 2.474,-18.315c5.414,-13.475 17.767,-27.434 38.494,-27.434c27.135,0 38.007,20.707 38.007,51.037l0,120.768l75.024,0Zm-307.552,-334.556c-25.674,0 -42.448,16.879 -42.448,39.002c0,21.658 16.264,39.002 41.455,39.002l0.484,0c26.165,0 42.452,-17.344 42.452,-39.002c-0.485,-22.092 -16.241,-38.954 -41.943,-39.002Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on reddit"
+            href="https://reddit.com/submit?url=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f&title=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-3.446,265.638c0,-22.964 -18.616,-41.58 -41.58,-41.58c-11.211,0 -21.361,4.457 -28.841,11.666c-28.424,-20.508 -67.586,-33.757 -111.204,-35.278l18.941,-89.121l61.884,13.157c0.756,15.734 13.642,28.29 29.56,28.29c16.407,0 29.706,-13.299 29.706,-29.701c0,-16.403 -13.299,-29.702 -29.706,-29.702c-11.666,0 -21.657,6.792 -26.515,16.578l-69.105,-14.69c-1.922,-0.418 -3.939,-0.042 -5.585,1.036c-1.658,1.073 -2.811,2.761 -3.224,4.686l-21.152,99.438c-44.258,1.228 -84.046,14.494 -112.837,35.232c-7.468,-7.164 -17.589,-11.591 -28.757,-11.591c-22.965,0 -41.585,18.616 -41.585,41.58c0,16.896 10.095,31.41 24.568,37.918c-0.639,4.135 -0.99,8.328 -0.99,12.576c0,63.977 74.469,115.836 166.33,115.836c91.861,0 166.334,-51.859 166.334,-115.836c0,-4.218 -0.347,-8.387 -0.977,-12.493c14.564,-6.47 24.735,-21.034 24.735,-38.001Zm-119.474,108.193c-20.27,20.241 -59.115,21.816 -70.534,21.816c-11.428,0 -50.277,-1.575 -70.522,-21.82c-3.007,-3.008 -3.007,-7.882 0,-10.889c3.003,-2.999 7.882,-3.003 10.885,0c12.777,12.781 40.11,17.317 59.637,17.317c19.522,0 46.86,-4.536 59.657,-17.321c3.016,-2.999 7.886,-2.995 10.885,0.008c3.008,3.011 3.003,7.882 -0.008,10.889Zm-5.23,-48.781c-16.373,0 -29.701,-13.324 -29.701,-29.698c0,-16.381 13.328,-29.714 29.701,-29.714c16.378,0 29.706,13.333 29.706,29.714c0,16.374 -13.328,29.698 -29.706,29.698Zm-160.386,-29.702c0,-16.381 13.328,-29.71 29.714,-29.71c16.369,0 29.689,13.329 29.689,29.71c0,16.373 -13.32,29.693 -29.689,29.693c-16.386,0 -29.714,-13.32 -29.714,-29.693Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on facebook"
+            href="https://facebook.com/sharer/sharer.php?u=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-106.468,0l0,-192.915l66.6,0l12.672,-82.621l-79.272,0l0,-53.617c0,-22.603 11.073,-44.636 46.58,-44.636l36.042,0l0,-70.34c0,0 -32.71,-5.582 -63.982,-5.582c-65.288,0 -107.96,39.569 -107.96,111.204l0,62.971l-72.573,0l0,82.621l72.573,0l0,192.915l-191.104,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on whatsapp"
+            href="https://api.whatsapp.com/send?text=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log%20-%20https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f">
+            <svg version="1.1" viewBox="0 0 512 512" xml:space="preserve" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M449.446,0c34.525,0 62.554,28.03 62.554,62.554l0,386.892c0,34.524 -28.03,62.554 -62.554,62.554l-386.892,0c-34.524,0 -62.554,-28.03 -62.554,-62.554l0,-386.892c0,-34.524 28.029,-62.554 62.554,-62.554l386.892,0Zm-58.673,127.703c-33.842,-33.881 -78.847,-52.548 -126.798,-52.568c-98.799,0 -179.21,80.405 -179.249,179.234c-0.013,31.593 8.241,62.428 23.927,89.612l-25.429,92.884l95.021,-24.925c26.181,14.28 55.659,21.807 85.658,21.816l0.074,0c98.789,0 179.206,-80.413 179.247,-179.243c0.018,-47.895 -18.61,-92.93 -52.451,-126.81Zm-126.797,275.782l-0.06,0c-26.734,-0.01 -52.954,-7.193 -75.828,-20.767l-5.441,-3.229l-56.386,14.792l15.05,-54.977l-3.542,-5.637c-14.913,-23.72 -22.791,-51.136 -22.779,-79.287c0.033,-82.142 66.867,-148.971 149.046,-148.971c39.793,0.014 77.199,15.531 105.329,43.692c28.128,28.16 43.609,65.592 43.594,105.4c-0.034,82.149 -66.866,148.983 -148.983,148.984Zm81.721,-111.581c-4.479,-2.242 -26.499,-13.075 -30.604,-14.571c-4.105,-1.495 -7.091,-2.241 -10.077,2.241c-2.986,4.483 -11.569,14.572 -14.182,17.562c-2.612,2.988 -5.225,3.364 -9.703,1.12c-4.479,-2.241 -18.91,-6.97 -36.017,-22.23c-13.314,-11.876 -22.304,-26.542 -24.916,-31.026c-2.612,-4.484 -0.279,-6.908 1.963,-9.14c2.016,-2.007 4.48,-5.232 6.719,-7.847c2.24,-2.615 2.986,-4.484 4.479,-7.472c1.493,-2.99 0.747,-5.604 -0.374,-7.846c-1.119,-2.241 -10.077,-24.288 -13.809,-33.256c-3.635,-8.733 -7.327,-7.55 -10.077,-7.688c-2.609,-0.13 -5.598,-0.158 -8.583,-0.158c-2.986,0 -7.839,1.121 -11.944,5.604c-4.105,4.484 -15.675,15.32 -15.675,37.364c0,22.046 16.048,43.342 18.287,46.332c2.24,2.99 31.582,48.227 76.511,67.627c10.685,4.615 19.028,7.371 25.533,9.434c10.728,3.41 20.492,2.929 28.209,1.775c8.605,-1.285 26.499,-10.833 30.231,-21.295c3.732,-10.464 3.732,-19.431 2.612,-21.298c-1.119,-1.869 -4.105,-2.99 -8.583,-5.232Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on telegram"
+            href="https://telegram.me/share/url?text=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log&amp;url=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f">
+            <svg version="1.1" xml:space="preserve" viewBox="2 2 28 28" height="30px" width="30px" fill="currentColor">
+                <path
+                    d="M26.49,29.86H5.5a3.37,3.37,0,0,1-2.47-1,3.35,3.35,0,0,1-1-2.47V5.48A3.36,3.36,0,0,1,3,3,3.37,3.37,0,0,1,5.5,2h21A3.38,3.38,0,0,1,29,3a3.36,3.36,0,0,1,1,2.46V26.37a3.35,3.35,0,0,1-1,2.47A3.38,3.38,0,0,1,26.49,29.86Zm-5.38-6.71a.79.79,0,0,0,.85-.66L24.73,9.24a.55.55,0,0,0-.18-.46.62.62,0,0,0-.41-.17q-.08,0-16.53,6.11a.59.59,0,0,0-.41.59.57.57,0,0,0,.43.52l4,1.24,1.61,4.83a.62.62,0,0,0,.63.43.56.56,0,0,0,.4-.17L16.54,20l4.09,3A.9.9,0,0,0,21.11,23.15ZM13.8,20.71l-1.21-4q8.72-5.55,8.78-5.55c.15,0,.23,0,.23.16a.18.18,0,0,1,0,.06s-2.51,2.3-7.52,6.8Z" />
+            </svg>
+        </a>
+    </li>
+    <li>
+        <a target="_blank" rel="noopener noreferrer" aria-label="share 【译】Large Transformer Model 推理优化 | Lil&#39;Log on ycombinator"
+            href="https://news.ycombinator.com/submitlink?t=%e3%80%90%e8%af%91%e3%80%91Large%20Transformer%20Model%20%e6%8e%a8%e7%90%86%e4%bc%98%e5%8c%96%20%7c%20Lil%27Log&u=https%3a%2f%2fawyugan.github.io%2f2023%2f10%2f06%2f%25E8%25AF%2591large-transformer-model-%25E6%258E%25A8%25E7%2590%2586%25E4%25BC%2598%25E5%258C%2596-lillog%2f">
+            <svg version="1.1" xml:space="preserve" width="30px" height="30px" viewBox="0 0 512 512" fill="currentColor"
+                xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+                <path
+                    d="M449.446 0C483.971 0 512 28.03 512 62.554L512 449.446C512 483.97 483.97 512 449.446 512L62.554 512C28.03 512 0 483.97 0 449.446L0 62.554C0 28.03 28.029 0 62.554 0L449.446 0ZM183.8767 87.9921H121.8427L230.6673 292.4508V424.0079H281.3328V292.4508L390.1575 87.9921H328.1233L256 238.2489z" />
+            </svg>
+        </a>
+    </li>
+</ul>
+
+  </footer>
+
+<script src="https://utteranc.es/client.js"
+        repo="awyugan/awyugan.github.io"
+        issue-term="title"
+        label="comment"
+        theme="preferred-color-scheme"
+        crossorigin="anonymous"
+        async>
+</script>
+</article>
+    </main>
+    
+<footer class="footer">
+    <span>&copy; 2024 <a href="https://awyugan.github.io">Awyugan&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+<script type="text/javascript"
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+</body>
+
+</html>
