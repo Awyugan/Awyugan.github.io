@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>翻译 on Awyugan&#39;s Blog</title>
+    <link>https://awyugan.github.io/tags/%E7%BF%BB%E8%AF%91/</link>
+    <description>Recent content in 翻译 on Awyugan&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Mon, 05 Feb 2024 23:07:22 +0800</lastBuildDate>
+    <atom:link href="https://awyugan.github.io/tags/%E7%BF%BB%E8%AF%91/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>【译】Read Write Own</title>
+      <link>https://awyugan.github.io/2024/02/05/%E8%AF%91read-write-own/</link>
+      <pubDate>Mon, 05 Feb 2024 23:07:22 +0800</pubDate>
+      <guid>https://awyugan.github.io/2024/02/05/%E8%AF%91read-write-own/</guid>
+      <description>ｂｙ A16z 互联网可能是二十世纪最重要的发明。它改变了世界，就像之前的技术革命——印刷机、蒸汽机、电力——一样。 与许多其他发明不同，互联网并没有立</description>
+    </item>
+    <item>
+      <title>技术乐观主义宣言【译】</title>
+      <link>https://awyugan.github.io/2023/10/16/%E6%8A%80%E6%9C%AF%E4%B9%90%E8%A7%82%E4%B8%BB%E4%B9%89%E5%AE%A3%E8%A8%80%E8%AF%91/</link>
+      <pubDate>Mon, 16 Oct 2023 13:21:54 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/16/%E6%8A%80%E6%9C%AF%E4%B9%90%E8%A7%82%E4%B8%BB%E4%B9%89%E5%AE%A3%E8%A8%80%E8%AF%91/</guid>
+      <description>“你正处在一个疯狂的时代 —— 比往常更加疯狂，因为尽管科学技术取得了巨大的进步，人们却依然对自己的身份和所做的事情一头雾水。” Walker Percy “我们的物种</description>
+    </item>
+    <item>
+      <title>【译】Transformer家庭2.0版</title>
+      <link>https://awyugan.github.io/2023/09/28/%E8%AF%91transformer%E5%AE%B6%E5%BA%AD2.0%E7%89%88/</link>
+      <pubDate>Thu, 28 Sep 2023 16:03:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/28/%E8%AF%91transformer%E5%AE%B6%E5%BA%AD2.0%E7%89%88/</guid>
+      <description>译自 Weng, Lilian. (Jan 2023). The transformer family version 2.0. Lil’Log. https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/.</description>
+    </item>
+    <item>
+      <title>【译】提示工程</title>
+      <link>https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/</link>
+      <pubDate>Wed, 27 Sep 2023 14:13:31 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/</guid>
+      <description>译自 ＠LilianWeng</description>
+    </item>
+    <item>
+      <title>【译】基于大型语言模型的智能体系统</title>
+      <link>https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/</link>
+      <pubDate>Tue, 26 Sep 2023 14:13:31 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/</guid>
+      <description>译自＠LilianWeng</description>
+    </item>
+  </channel>
+</rss>

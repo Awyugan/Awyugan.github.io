@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Posts on Awyugan&#39;s Blog</title>
+    <link>https://awyugan.github.io/post/</link>
+    <description>Recent content in Posts on Awyugan&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-cn</language>
+    <lastBuildDate>Sun, 02 Jun 2024 19:42:03 +0000</lastBuildDate>
+    <atom:link href="https://awyugan.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>【译】Read Write Own</title>
+      <link>https://awyugan.github.io/2024/02/05/%E8%AF%91read-write-own/</link>
+      <pubDate>Mon, 05 Feb 2024 23:07:22 +0800</pubDate>
+      <guid>https://awyugan.github.io/2024/02/05/%E8%AF%91read-write-own/</guid>
+      <description>ｂｙ A16z 互联网可能是二十世纪最重要的发明。它改变了世界，就像之前的技术革命——印刷机、蒸汽机、电力——一样。 与许多其他发明不同，互联网并没有立</description>
+    </item>
+    <item>
+      <title>评估人工智能系统的挑战【译】</title>
+      <link>https://awyugan.github.io/2023/10/28/%E8%AF%84%E4%BC%B0%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8C%91%E6%88%98%E8%AF%91/</link>
+      <pubDate>Sat, 28 Oct 2023 17:00:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/28/%E8%AF%84%E4%BC%B0%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%E7%B3%BB%E7%BB%9F%E7%9A%84%E6%8C%91%E6%88%98%E8%AF%91/</guid>
+      <description>Anthropic 开发了 cluade2，2023年10月获得谷歌数亿美元投资。 介绍 大多数围绕人工智能（AI）社会影响的讨论通常都会涉及讨论 AI 系统的某些质量，</description>
+    </item>
+    <item>
+      <title>漫谈科学研究方法【转】</title>
+      <link>https://awyugan.github.io/2023/10/21/%E6%BC%AB%E8%B0%88%E7%A7%91%E5%AD%A6%E7%A0%94%E7%A9%B6%E6%96%B9%E6%B3%95%E8%BD%AC/</link>
+      <pubDate>Sat, 21 Oct 2023 17:00:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/21/%E6%BC%AB%E8%B0%88%E7%A7%91%E5%AD%A6%E7%A0%94%E7%A9%B6%E6%96%B9%E6%B3%95%E8%BD%AC/</guid>
+      <description>自然辩证法通讯第十四卷总77期 v14 №77 1992第1期JOURNALOFDIALECTICSOFNATURE1，1992 ·科学哲学· [美]司马</description>
+    </item>
+    <item>
+      <title>技术乐观主义宣言【译】</title>
+      <link>https://awyugan.github.io/2023/10/16/%E6%8A%80%E6%9C%AF%E4%B9%90%E8%A7%82%E4%B8%BB%E4%B9%89%E5%AE%A3%E8%A8%80%E8%AF%91/</link>
+      <pubDate>Mon, 16 Oct 2023 13:21:54 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/16/%E6%8A%80%E6%9C%AF%E4%B9%90%E8%A7%82%E4%B8%BB%E4%B9%89%E5%AE%A3%E8%A8%80%E8%AF%91/</guid>
+      <description>“你正处在一个疯狂的时代 —— 比往常更加疯狂，因为尽管科学技术取得了巨大的进步，人们却依然对自己的身份和所做的事情一头雾水。” Walker Percy “我们的物种</description>
+    </item>
+    <item>
+      <title>【译】Large Transformer Model 推理优化 | Lil&#39;Log</title>
+      <link>https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/</link>
+      <pubDate>Fri, 06 Oct 2023 18:03:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/06/%E8%AF%91large-transformer-model-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96-lillog/</guid>
+      <description>[January 10, 2023] · 31 min · Lilian Weng 2023-01-24 更新：增加了关于蒸馏 的小节 如今，大型 Transformer 模型已经成为主流，为各种任务创造了 SoTA (最先进的技术) 结果。它们功能强大但训练和使用</description>
+    </item>
+    <item>
+      <title>【译】如何在多 GPU 上训练真正的大型模型？ | Lil&#39;Log</title>
+      <link>https://awyugan.github.io/2023/10/06/%E8%AF%91%E5%A6%82%E4%BD%95%E5%9C%A8%E5%A4%9A-gpu-%E4%B8%8A%E8%AE%AD%E7%BB%83%E7%9C%9F%E6%AD%A3%E7%9A%84%E5%A4%A7%E5%9E%8B%E6%A8%A1%E5%9E%8B-lillog/</link>
+      <pubDate>Fri, 06 Oct 2023 03:03:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/10/06/%E8%AF%91%E5%A6%82%E4%BD%95%E5%9C%A8%E5%A4%9A-gpu-%E4%B8%8A%E8%AE%AD%E7%BB%83%E7%9C%9F%E6%AD%A3%E7%9A%84%E5%A4%A7%E5%9E%8B%E6%A8%A1%E5%9E%8B-lillog/</guid>
+      <description>2022-03-13 更新: 添加 expert choice routing 2022-06-10 更新: Greg 和我撰写了这篇文章的缩短和升级版本，发表在 OpenAI Blog 上：&amp;ldquo;训练大型神经网络的技术&amp;rdquo; 近年来，我们</description>
+    </item>
+    <item>
+      <title>How to Use Latex in Markdown</title>
+      <link>https://awyugan.github.io/2023/09/29/how-to-use-latex-in-markdown/</link>
+      <pubDate>Fri, 29 Sep 2023 03:03:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/29/how-to-use-latex-in-markdown/</guid>
+      <description>学习如何在markdown中使用latex</description>
+    </item>
+    <item>
+      <title>【译】Transformer家庭2.0版</title>
+      <link>https://awyugan.github.io/2023/09/28/%E8%AF%91transformer%E5%AE%B6%E5%BA%AD2.0%E7%89%88/</link>
+      <pubDate>Thu, 28 Sep 2023 16:03:40 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/28/%E8%AF%91transformer%E5%AE%B6%E5%BA%AD2.0%E7%89%88/</guid>
+      <description>译自 Weng, Lilian. (Jan 2023). The transformer family version 2.0. Lil’Log. https://lilianweng.github.io/posts/2023-01-27-the-transformer-family-v2/.</description>
+    </item>
+    <item>
+      <title>【译】提示工程</title>
+      <link>https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/</link>
+      <pubDate>Wed, 27 Sep 2023 14:13:31 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/27/%E8%AF%91%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B/</guid>
+      <description>译自 ＠LilianWeng</description>
+    </item>
+    <item>
+      <title>【译】基于大型语言模型的智能体系统</title>
+      <link>https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/</link>
+      <pubDate>Tue, 26 Sep 2023 14:13:31 +0800</pubDate>
+      <guid>https://awyugan.github.io/2023/09/26/%E8%AF%91%E5%9F%BA%E4%BA%8E%E5%A4%A7%E5%9E%8B%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F/</guid>
+      <description>译自＠LilianWeng</description>
+    </item>
+    <item>
+      <title>如何查找期刊历任编辑</title>
+      <link>https://awyugan.github.io/2022/12/28/%E5%A6%82%E4%BD%95%E6%9F%A5%E6%89%BE%E6%9C%9F%E5%88%8A%E5%8E%86%E4%BB%BB%E7%BC%96%E8%BE%91/</link>
+      <pubDate>Wed, 28 Dec 2022 20:41:46 +0800</pubDate>
+      <guid>https://awyugan.github.io/2022/12/28/%E5%A6%82%E4%BD%95%E6%9F%A5%E6%89%BE%E6%9C%9F%E5%88%8A%E5%8E%86%E4%BB%BB%E7%BC%96%E8%BE%91/</guid>
+      <description>小编小编你在哪儿？</description>
+    </item>
+    <item>
+      <title>批量获取图书文献</title>
+      <link>https://awyugan.github.io/2022/09/19/%E6%89%B9%E9%87%8F%E8%8E%B7%E5%8F%96%E5%9B%BE%E4%B9%A6%E6%96%87%E7%8C%AE/</link>
+      <pubDate>Mon, 19 Sep 2022 00:00:00 +0800</pubDate>
+      <guid>https://awyugan.github.io/2022/09/19/%E6%89%B9%E9%87%8F%E8%8E%B7%E5%8F%96%E5%9B%BE%E4%B9%A6%E6%96%87%E7%8C%AE/</guid>
+      <description>批量获取图书参考文献，导入文献管理软件</description>
+    </item>
+    <item>
+      <title>2021总结</title>
+      <link>https://awyugan.github.io/2022/01/02/2021%E6%80%BB%E7%BB%93/</link>
+      <pubDate>Sun, 02 Jan 2022 16:22:39 +0000</pubDate>
+      <guid>https://awyugan.github.io/2022/01/02/2021%E6%80%BB%E7%BB%93/</guid>
+      <description>无论是否有收获，办了什么蠢事，都要留下些什么。秉承这样的态度，在 2021 年的最后一周，我开始反思并总结。 关键词 今年的方向感很差，近乎迷了路。梳理下</description>
+    </item>
+    <item>
+      <title>博客指南</title>
+      <link>https://awyugan.github.io/2021/11/10/%E5%8D%9A%E5%AE%A2%E6%8C%87%E5%8D%97/</link>
+      <pubDate>Wed, 10 Nov 2021 20:00:23 +0000</pubDate>
+      <guid>https://awyugan.github.io/2021/11/10/%E5%8D%9A%E5%AE%A2%E6%8C%87%E5%8D%97/</guid>
+      <description>博客更新，我的个人博客介绍尽在这里啦～</description>
+    </item>
+  </channel>
+</rss>
