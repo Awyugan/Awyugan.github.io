@@ -6,8 +6,15 @@
     <description>Recent content in Posts on Awyugan&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Sun, 02 Jun 2024 19:42:03 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 18 Sep 2024 12:03:17 +0800</lastBuildDate>
     <atom:link href="https://awyugan.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Learn_ml</title>
+      <link>https://awyugan.github.io/2024/09/18/learn_ml/</link>
+      <pubDate>Wed, 18 Sep 2024 12:03:17 +0800</pubDate>
+      <guid>https://awyugan.github.io/2024/09/18/learn_ml/</guid>
+      <description>关于学习机器学习的清单</description>
+    </item>
     <item>
       <title>【译】Read Write Own</title>
       <link>https://awyugan.github.io/2024/02/05/%E8%AF%91read-write-own/</link>
